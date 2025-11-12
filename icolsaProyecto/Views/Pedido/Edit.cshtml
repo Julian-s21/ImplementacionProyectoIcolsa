@@ -1,0 +1,1130 @@
+@model icolsaProyecto.Models.Pedido
+
+@{
+    ViewData["Title"] = "Editar Pedido";
+    var userRol = Context.Session.GetString("UsuarioRol");
+    Layout = userRol == "Administrativo" || userRol == "Secretario" || userRol == "Empleado"
+        ? "~/Views/Shared/_LayoutAdministrativo.cshtml"
+        : "~/Views/Shared/_Layout.cshtml";
+
+    var clientes = ViewBag.Clientes as IEnumerable<icolsaProyecto.Models.Cliente> ?? new List<icolsaProyecto.Models.Cliente>();
+    var productos = ViewBag.Productos as IEnumerable<icolsaProyecto.Models.Producto> ?? new List<icolsaProyecto.Models.Producto>();
+    var usuarios = ViewBag.Usuarios as IEnumerable<icolsaProyecto.Models.Usuario> ?? new List<icolsaProyecto.Models.Usuario>();
+
+    
+    // Preparar detalles iniciales para JS (solo campos simples)
+    var detallesIniciales = (Model?.Detalles ?? new List<icolsaProyecto.Models.DetallePedido>())
+        .Select(d => new {
+            IDProducto = d.IDProducto,
+            Cantidad = d.Cantidad,
+            PrecioUnitario = d.PrecioUnitario,
+            Subtotal = d.Subtotal
+        }).ToList();
+}
+
+<div class="container py-5">
+    <!-- ENCABEZADO -->
+    <div class="bg-white/80 backdrop-blur-md shadow-lg rounded-4 border border-gray-100 p-4 mb-4">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h2 class="fw-bold mb-1"
+                    style="background: linear-gradient(90deg, #6a11cb, #2575fc);
+                           -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                    Editar Pedido
+                </h2>
+                <p class="text-muted mb-0">Crea un nuevo pedido con múltiples productos.</p>
+            </div>
+            <a asp-action="Index" class="btn btn-outline-primary rounded-pill fw-semibold shadow-sm">
+                <i class="bi bi-arrow-left me-1"></i> Volver
+            </a>
+        </div>
+    </div>
+
+    <!-- FORMULARIO -->
+    <div class="bg-white p-5 shadow-lg rounded-4 border-0">
+        <!-- Cambiado: ahora envía al action Edit -->
+        <form asp-action="Edit" method="post" autocomplete="off" id="formPedido" novalidate>
+            @Html.AntiForgeryToken()
+
+            <!-- Hidden ID del pedido para edición -->
+            <input type="hidden" asp-for="IDPedido" />
+
+            <div class="row g-4">
+
+                <!-- Cliente (MODIFICADO) -->
+                <div class="col-md-6 position-relative">
+                    <label class="form-label fw-semibold">Cliente</label>
+                    <div class="input-group">
+                        <input type="text" id="buscarCliente" class="form-control border-0 shadow-sm rounded-start-3" placeholder="Buscar cliente por nombre o NIT..." autocomplete="off" value="@(Model?.Cliente != null ? (Model.Cliente.Nombre_Cliente + " " + Model.Cliente.Apellido_Cliente) : "")" />
+                        <input type="hidden" name="IDCliente" id="IDCliente" value="@(Model?.IDCliente ?? 0)" />
+                        <button type="button" class="btn btn-outline-success rounded-end-3 shadow-sm"
+                                data-bs-toggle="modal" data-bs-target="#modalNuevoCliente">
+                            <i class="bi bi-person-plus"></i>
+                        </button>
+                    </div>
+                    <div id="resultadosClientes" class="list-group position-absolute shadow-sm" style="z-index: 1050; display: none; max-height:240px; overflow:auto; width:100%;"></div>
+                    <small class="text-muted">Busque y seleccione un cliente, o agrégalo si no existe.</small>
+                </div>
+
+                <!-- Usuario -->
+                <div class="col-md-6">
+                    <label asp-for="IDUsuario" class="form-label fw-semibold">Vendedor/Usuario</label>
+                    <select asp-for="IDUsuario"
+                            asp-items="@(new SelectList(usuarios, nameof(Usuario.IDUsuario), nameof(Usuario.Nombre_Usuario)))"
+                            class="form-select border-0 shadow-sm rounded-3">
+                        <option value="">Seleccione un usuario</option>
+                    </select>
+                </div>
+
+                <!-- Fecha -->
+                <div class="col-md-6">
+                    <label asp-for="Fecha_Pedido" class="form-label fw-semibold">Fecha del Pedido</label>
+                    <input asp-for="Fecha_Pedido" type="datetime-local"
+                           class="form-control border-0 shadow-sm rounded-3" />
+                </div>
+            </div>
+
+            <hr class="my-5" />
+
+            <!-- PRODUCTOS DINÁMICOS -->
+            <div class="mb-4">
+                <h5 class="fw-bold mb-3">Productos del Pedido</h5>
+                <div id="productosContainer"></div>
+
+                <button type="button" id="btnAgregarProducto"
+                        class="btn btn-outline-primary rounded-pill mt-3 shadow-sm">
+                    <i class="bi bi-plus-circle me-1"></i> Agregar Producto
+                </button>
+            </div>
+
+            <div class="row mt-3">
+               <!-- Selección de Método de Pago -->
+    <div class="col-md-6">
+        <label for="IDMetodoPago" class="form-label">Método de Pago</label>
+        <div class="input-group">
+            <select id="IDMetodoPago" name="IDMetodoPago" class="form-select" required>
+                <option value="">Seleccione un método de pago...</option>
+                @foreach (var metodo in ViewBag.MetodosPago as List<icolsaProyecto.Models.MetodoPago>)
+                {
+                    <option value="@metodo.IDMetodoPago">@metodo.NombreMetodo</option>
+                }
+            </select>
+            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalNuevoMetodoPago">
+                <i class="bi bi-plus-lg"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Selección de Estado de Pago -->
+    <div class="col-md-6">
+        <label for="IDEstadoPago" class="form-label">Estado de Pago</label>
+        <div class="input-group">
+            <select id="IDEstadoPago" name="IDEstadoPago" class="form-select" required>
+                <option value="">Seleccione un estado...</option>
+                @foreach (var estado in ViewBag.EstadosPago as List<icolsaProyecto.Models.EstadoPago>)
+                {
+                    <option value="@estado.IDEstadoPago">@estado.NombreEstado</option>
+                }
+            </select>
+            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalNuevoEstadoPago">
+                <i class="bi bi-plus-lg"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+
+    <!-- MONTO PAGADO -->
+    <div class="col-md-6">
+        <label for="MontoPago" class="form-label fw-semibold">Monto Pagado</label>
+        <input type="number" step="0.01" min="0"
+               id="MontoPago" name="MontoPago"
+               class="form-control border-0 shadow-sm rounded-3"
+               placeholder="Ej. 150.00" required />
+    </div>
+
+    <!-- FECHA DE PAGO -->
+    <div class="col-md-6">
+        <label for="FechaPago" class="form-label fw-semibold">Fecha de Pago</label>
+        <input type="date"
+               id="FechaPago" name="FechaPago"
+               class="form-control border-0 shadow-sm rounded-3"
+               required />
+    </div>
+
+</div>
+
+
+            <!-- TOTAL -->
+            <div class="mt-4 text-end">
+                <h4 class="fw-semibold">Total del Pedido: 
+                    <span id="totalGeneral" class="text-primary">Q0.00</span>
+                </h4>
+            </div>
+
+            <!-- CAMPOS OCULTOS CLIENTE TEMPORAL -->
+            <input type="hidden" name="ClienteTemporal_Nombre" id="ClienteTemporal_Nombre" />
+            <input type="hidden" name="ClienteTemporal_Apellido" id="ClienteTemporal_Apellido" />
+            <input type="hidden" name="ClienteTemporal_Direccion" id="ClienteTemporal_Direccion" />
+            <input type="hidden" name="ClienteTemporal_Telefono" id="ClienteTemporal_Telefono" />
+            <input type="hidden" name="ClienteTemporal_Correo" id="ClienteTemporal_Correo" />
+            <input type="hidden" name="ClienteTemporal_NIT" id="ClienteTemporal_NIT" />
+
+
+
+                        <!-- ALERTA DE STOCK INSUFICIENTE -->
+            <div id="alertaStock" class="alert alert-warning d-none mt-3 rounded-3" role="alert">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                <strong>Advertencia:</strong> <span id="mensajeStock"></span>
+            </div>
+
+            <!-- BOTONES -->
+            <div class="text-center mt-5">
+                <button type="submit"
+                        class="btn px-5 py-2 rounded-pill text-white shadow-sm fw-semibold"
+                        style="background: linear-gradient(90deg, #6a11cb, #2575fc);">
+                    <i class="bi bi-check-circle me-2"></i>Guardar Pedido
+                </button>
+                <button type="button" id="btnCancelar"
+                        class="btn btn-outline-secondary px-5 py-2 rounded-pill ms-2 shadow-sm"
+                        onclick="window.location.href='@Url.Action("Index")'">
+                    <i class="bi bi-x-circle me-2"></i>Cancelar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODALES (iguales que en Create) -->
+<!-- MODAL NUEVO CLIENTE -->
+<div class="modal fade" id="modalNuevoCliente" tabindex="-1" aria-labelledby="nuevoClienteLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content shadow-lg rounded-4 border-0">
+      <div class="modal-header bg-gradient" style="background: linear-gradient(90deg,#6a11cb,#2575fc);">
+        <h5 class="modal-title text-white fw-bold" id="nuevoClienteLabel">Registrar Nuevo Cliente</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Nombre</label>
+            <input type="text" id="nuevoNombre" class="form-control shadow-sm border-0" placeholder="Ej. Juan" />
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Apellido</label>
+            <input type="text" id="nuevoApellido" class="form-control shadow-sm border-0" placeholder="Ej. Pérez" />
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">NIT</label>
+            <input type="text" id="nuevoNIT" class="form-control shadow-sm border-0" placeholder="Ej. CF o 1234567-8" />
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Teléfono</label>
+            <input type="text" id="nuevoTelefono" class="form-control shadow-sm border-0" placeholder="Ej. 50212345678" />
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold">Dirección</label>
+            <input type="text" id="nuevoDireccion" class="form-control shadow-sm border-0" placeholder="Ej. Zona 1, San Marcos" />
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer bg-light">
+        <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" id="btnGuardarNuevoCliente" class="btn rounded-pill text-white fw-semibold"
+          style="background: linear-gradient(90deg,#6a11cb,#2575fc);">
+          <i class="bi bi-check-circle me-1"></i> Guardar Cliente
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Metodo Pago modal -->
+<div class="modal fade" id="modalNuevoMetodoPago" tabindex="-1" aria-labelledby="modalNuevoMetodoPagoLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalNuevoMetodoPagoLabel">Nuevo Método de Pago</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="nuevoMetodoPago" class="form-label">Nombre del Método</label>
+                    <input type="text" id="nuevoMetodoPago" class="form-control" placeholder="Ej. Efectivo, Transferencia, Tarjeta">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnGuardarMetodoPago">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Estado Pago modal -->
+<div class="modal fade" id="modalNuevoEstadoPago" tabindex="-1" aria-labelledby="modalNuevoEstadoPagoLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="modalNuevoEstadoPagoLabel">Nuevo Estado de Pago</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="nuevoEstadoPago" class="form-label">Nombre del Estado</label>
+                    <input type="text" id="nuevoEstadoPago" class="form-control" placeholder="Ej. Pagado, Pendiente, Anulado">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" id="btnGuardarEstadoPago">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const form = document.getElementById("formPedido");
+            if (!form) return;
+
+            const errorSummary = document.createElement("div");
+            errorSummary.id = "errorSummary";
+            errorSummary.classList.add("alert", "alert-danger", "d-none", "mt-3", "rounded-3");
+            form.prepend(errorSummary);
+
+            // DESACTIVAR VALIDACIÓN HTML5 (ya está en el atributo novalidate del form)
+            form.querySelectorAll("input, select").forEach(campo => {
+                campo.addEventListener("invalid", e => e.preventDefault());
+            });
+
+            // CAMPOS PRINCIPALES
+            const inputBuscar = document.getElementById("buscarCliente");
+            const inputIDCliente = document.getElementById("IDCliente");
+            const selectUsuario = document.querySelector("[name='IDUsuario']");
+            const inputFecha = document.querySelector("[name='Fecha_Pedido']");
+            const productosContainer = document.getElementById("productosContainer");
+
+            // FUNCIONES AUXILIARES DE VALIDACIÓN
+            function showError(element, message) {
+                let visual = element;
+                if (!visual || visual.type === 'hidden') visual = document.getElementById('buscarCliente');
+                visual.classList.remove("is-valid");
+                visual.classList.add("is-invalid");
+                let feedback = visual.parentElement.querySelector(".invalid-feedback");
+                if (!feedback) {
+                    feedback = document.createElement("div");
+                    feedback.classList.add("invalid-feedback", "d-block", "small");
+                    visual.parentElement.appendChild(feedback);
+                }
+                feedback.textContent = message;
+            }
+
+            function clearError(element) {
+                let visual = element;
+                if (!visual || visual.type === 'hidden') visual = document.getElementById('buscarCliente');
+                visual.classList.remove("is-invalid");
+                visual.classList.add("is-valid");
+                const fb = visual.parentElement.querySelector(".invalid-feedback");
+                if (fb) fb.textContent = "";
+            }
+
+            // =====================================
+            // ✅ VALIDACIÓN DE STOCK (DEFINIDA TEMPRANO)
+            // =====================================
+            function validarStock() {
+                let stockValido = true;
+                let advertencias = [];
+
+                document.querySelectorAll(".producto-item").forEach((item, index) => {
+                    const select = item.querySelector(".selectProducto");
+                    const inputCantidad = item.querySelector(".inputCantidad");
+
+                    const productoId = select?.value;
+                    const cantidad = parseInt(inputCantidad?.value) || 0;
+
+                    if (!productoId || cantidad <= 0) return;
+
+                    const stockDisponible = parseInt(select.selectedOptions[0]?.dataset?.stock || 0);
+
+                    if (cantidad > stockDisponible) {
+                        stockValido = false;
+                        const nombreProducto = select.selectedOptions[0]?.text.trim() || `Fila ${index + 1}`;
+                        advertencias.push(`${nombreProducto}: Solicitas ${cantidad} pero solo hay ${stockDisponible} disponibles.`);
+                    }
+                });
+
+                const alertaStock = document.getElementById("alertaStock");
+                const mensajeStock = document.getElementById("mensajeStock");
+
+                if (!stockValido) {
+                    alertaStock?.classList.remove("d-none");
+                    if (mensajeStock) mensajeStock.innerHTML = advertencias.join("<br>");
+                } else {
+                    alertaStock?.classList.add("d-none");
+                }
+
+                return stockValido;
+            }
+
+            // =====================================
+            // ✅ ACTUALIZAR TOTAL GENERAL (DEFINIDA ANTES DE USARLA)
+            // =====================================
+            function actualizarTotalGeneral() {
+                let total = 0;
+                document.querySelectorAll(".inputSubtotal").forEach(input => {
+                    total += parseFloat(input.value) || 0;
+                });
+                const totalEl = document.getElementById("totalGeneral");
+                if (totalEl) totalEl.textContent = `Q${total.toFixed(2)}`;
+            }
+
+            // =====================================
+            // ✅ FUNCIONES DE PRECIO/SUBTOTAL (DEFINIDAS ANTES DE crearFilaProducto)
+            // =====================================
+            function actualizarPrecioYSubtotal() {
+                const fila = this.closest(".producto-item");
+                const precioInput = fila.querySelector(".inputPrecio");
+                const subtotalInput = fila.querySelector(".inputSubtotal");
+                const cantidadInput = fila.querySelector(".inputCantidad");
+
+                const precio = parseFloat(this.selectedOptions[0]?.dataset?.precio || 0);
+                precioInput.value = precio.toFixed(2);
+
+                const cantidad = parseInt(cantidadInput.value) || 0;
+                subtotalInput.value = (precio * cantidad).toFixed(2);
+
+                actualizarTotalGeneral();
+            }
+
+            function calcularSubtotal() {
+                const fila = this.closest(".producto-item");
+                const precio = parseFloat(fila.querySelector(".inputPrecio").value) || 0;
+                const cantidad = parseInt(this.value) || 0;
+                const subtotalInput = fila.querySelector(".inputSubtotal");
+
+                subtotalInput.value = (precio * cantidad).toFixed(2);
+                actualizarTotalGeneral();
+            }
+
+            // ---------------------------------------
+            // VALIDACIONES EN TIEMPO REAL (cliente, usuario, fecha)
+            // ---------------------------------------
+            inputIDCliente.addEventListener("change", () => {
+                if (!inputIDCliente.value) showError(inputIDCliente, "Debe seleccionar un cliente.");
+                else clearError(inputIDCliente);
+            });
+
+            inputBuscar.addEventListener("input", () => {
+                if (!inputBuscar.value.trim()) {
+                    inputIDCliente.value = "";
+                    showError(inputIDCliente, "Debe seleccionar un cliente.");
+                } else {
+                    inputBuscar.classList.remove('is-valid', 'is-invalid');
+                }
+            });
+
+            if (selectUsuario) {
+                selectUsuario.addEventListener("change", () => {
+                    if (!selectUsuario.value) showError(selectUsuario, "Debe seleccionar un vendedor/usuario.");
+                    else clearError(selectUsuario);
+                });
+            }
+
+            if (inputFecha) {
+                inputFecha.addEventListener("input", () => {
+                    const valor = inputFecha.value;
+                    if (!valor) {
+                        showError(inputFecha, "Debe ingresar la fecha del pedido.");
+                    } else {
+                        clearError(inputFecha);
+                    }
+                });
+            }
+
+            // ---------------------------------------
+            // VALIDACIÓN DE PRODUCTOS (usa las mismas clases .inputCantidad, .inputPrecio, .inputSubtotal)
+            // ---------------------------------------
+            function validarProductos() {
+                const filas = productosContainer.querySelectorAll(".producto-item");
+                let errores = [];
+
+                if (filas.length === 0) {
+                    errores.push("Debe agregar al menos un producto al pedido.");
+                    return errores;
+                }
+
+                filas.forEach((fila, index) => {
+                    const selectProducto = fila.querySelector(".selectProducto");
+                    const inputCantidad = fila.querySelector(".inputCantidad");
+                    const precioInput = fila.querySelector(".inputPrecio");
+                    const subtotalInput = fila.querySelector(".inputSubtotal");
+
+                    const precio = parseFloat(precioInput.value) || 0;
+                    const cantidad = parseInt(inputCantidad.value) || 0;
+                    const stockDisponible = parseInt(selectProducto.selectedOptions[0]?.dataset?.stock || 0);
+
+                    if (!selectProducto.value) {
+                        errores.push(`Debe seleccionar un producto en la fila ${index + 1}.`);
+                        showError(selectProducto, "Seleccione un producto válido.");
+                    } else {
+                        clearError(selectProducto);
+                    }
+
+                    if (isNaN(cantidad) || cantidad <= 0) {
+                        errores.push(`La cantidad del producto en la fila ${index + 1} debe ser mayor a 0.`);
+                        showError(inputCantidad, "Ingrese una cantidad válida.");
+                    } else if (cantidad > stockDisponible) {
+                        errores.push(`La cantidad en fila ${index + 1} excede el stock disponible (${stockDisponible}).`);
+                        showError(inputCantidad, `Máximo disponible: ${stockDisponible}`);
+                    } else if (cantidad > 10000) {
+                        errores.push(`La cantidad del producto en la fila ${index + 1} no puede superar 10,000 unidades.`);
+                        showError(inputCantidad, "Cantidad demasiado alta.");
+                    } else {
+                        clearError(inputCantidad);
+                    }
+
+                    if (isNaN(precio) || precio <= 0) {
+                        errores.push(`El producto en la fila ${index + 1} tiene un precio inválido.`);
+                        showError(precioInput, "Precio inválido.");
+                    } else {
+                        clearError(precioInput);
+                    }
+                });
+
+                return errores;
+            }
+
+            // ===============================
+            // ✅ VALIDACIÓN TIEMPO REAL: MÉTODO DE PAGO
+            // ===============================
+            const selectMetodoPago = document.getElementById("IDMetodoPago");
+            if (selectMetodoPago) {
+                selectMetodoPago.addEventListener("change", () => {
+                    if (!selectMetodoPago.value) {
+                        showError(selectMetodoPago, "Debe seleccionar un método de pago.");
+                    } else {
+                        clearError(selectMetodoPago);
+                    }
+                });
+            }
+
+            // ===============================
+            // ✅ VALIDACIÓN TIEMPO REAL: ESTADO DE PAGO
+            // ===============================
+            const selectEstadoPago = document.getElementById("IDEstadoPago");
+            if (selectEstadoPago) {
+                selectEstadoPago.addEventListener("change", () => {
+                    if (!selectEstadoPago.value) {
+                        showError(selectEstadoPago, "Debe seleccionar un estado de pago.");
+                    } else {
+                        clearError(selectEstadoPago);
+                    }
+                });
+            }
+
+            // ==========================
+            // ✅ VALIDACIÓN: MONTO PAGO
+            // ==========================
+            const inputMontoPago = document.getElementById("MontoPago");
+            if (inputMontoPago) {
+                inputMontoPago.addEventListener("input", () => {
+                    const valor = parseFloat(inputMontoPago.value);
+                    if (isNaN(valor) || valor <= 0) {
+                        showError(inputMontoPago, "El monto debe ser mayor a 0.");
+                    } else {
+                        clearError(inputMontoPago);
+                    }
+                });
+            }
+
+            // ==========================
+            // ✅ VALIDACIÓN: FECHA PAGO
+            // ==========================
+            const inputFechaPago = document.getElementById("FechaPago");
+            if (inputFechaPago) {
+                inputFechaPago.addEventListener("input", () => {
+                    let fecha = new Date(inputFechaPago.value);
+                    let hoy = new Date();
+
+                    hoy.setHours(0,0,0,0);
+
+                    if (!inputFechaPago.value) {
+                        showError(inputFechaPago, "Debe ingresar la fecha de pago.");
+                    }
+                    else if (fecha > hoy) {
+                        showError(inputFechaPago, "La fecha de pago no puede ser futura.");
+                    }
+                    else {
+                        clearError(inputFechaPago);
+                    }
+                });
+            }
+
+            // -----------------------------
+            // ✅ VALIDACIÓN FINAL AL ENVIAR
+            // -----------------------------
+            form.addEventListener("submit", function (event) {
+                try {
+                    event.preventDefault();
+
+                    // limpiar cualquier mensaje anterior
+                    errorSummary.classList.add("d-none");
+                    errorSummary.innerHTML = "";
+
+                    let errores = [];
+
+                    // ====================
+                    // ✅ VALIDAR CLIENTE
+                    // ====================
+                    const tieneClienteFrecuente = inputIDCliente.value;
+                    const clienteTemporalNombreEl = document.getElementById("ClienteTemporal_Nombre");
+                    const clienteTemporalNombre = clienteTemporalNombreEl ? clienteTemporalNombreEl.value : "";
+                    if (!tieneClienteFrecuente && !clienteTemporalNombre) {
+                        errores.push("Debe seleccionar un cliente o registrar uno temporal.");
+                        showError(inputIDCliente, "Debe seleccionar un cliente o usar un cliente temporal.");
+                    } else {
+                        clearError(inputIDCliente);
+                    }
+
+                    // ====================
+                    // ✅ VALIDAR USUARIO
+                    // ====================
+                    if (!selectUsuario || !selectUsuario.value) {
+                        errores.push("Debe seleccionar un vendedor o usuario.");
+                        if (selectUsuario) showError(selectUsuario, "Debe seleccionar un vendedor o usuario.");
+                    } else {
+                        if (selectUsuario) clearError(selectUsuario);
+                    }
+
+                    // ====================
+                    // ✅ VALIDAR FECHA PEDIDO
+                    // ====================
+                    const valorFecha = inputFecha ? inputFecha.value : null;
+                    const fechaPedido = valorFecha ? new Date(valorFecha) : null;
+                    const hoy = new Date();
+                    hoy.setHours(0,0,0,0);
+
+                    if (!valorFecha) {
+                        errores.push("Debe ingresar la fecha del pedido.");
+                        if (inputFecha) showError(inputFecha, "Debe ingresar la fecha del pedido.");
+                    } 
+                    else {
+                        if (inputFecha) clearError(inputFecha);
+                    }
+
+                    // =====================================
+                    // ✅ VALIDAR MÉTODO DE PAGO
+                    // =====================================
+                    const metodoPago = document.getElementById("IDMetodoPago");
+                    if (!metodoPago || !metodoPago.value) {
+                        errores.push("Debe seleccionar un método de pago.");
+                        if (metodoPago) showError(metodoPago, "Debe seleccionar un método de pago.");
+                    } else {
+                        if (metodoPago) clearError(metodoPago);
+                    }
+
+                    // =====================================
+                    // ✅ VALIDAR ESTADO DE PAGO
+                    // =====================================
+                    const estadoPago = document.getElementById("IDEstadoPago");
+                    if (!estadoPago || !estadoPago.value) {
+                        errores.push("Debe seleccionar un estado de pago.");
+                        if (estadoPago) showError(estadoPago, "Debe seleccionar un estado de pago.");
+                    } else {
+                        if (estadoPago) clearError(estadoPago);
+                    }
+
+                    // ============================
+                    // ✅ VALIDAR PRODUCTOS
+                    // ============================
+                    const erroresProductos = validarProductos();
+                    errores = errores.concat(erroresProductos);
+
+                    // ============================
+                    // ✅ VALIDAR MONTO PAGO
+                    // ============================
+                    if (inputMontoPago) {
+                        let monto = parseFloat(inputMontoPago.value);
+
+                        if (isNaN(monto) || monto <= 0) {
+                            errores.push("El monto del pago debe ser mayor a 0.");
+                            showError(inputMontoPago, "Monto inválido.");
+                        } else {
+                            clearError(inputMontoPago);
+                        }
+                    }
+
+                    // ============================
+                    // ✅ VALIDAR FECHA PAGO
+                    // ============================
+                    if (inputFechaPago) {
+                        let fecha = new Date(inputFechaPago.value);
+
+                        if (!inputFechaPago.value) {
+                            errores.push("Debe ingresar la fecha del pago.");
+                            showError(inputFechaPago, "Debe ingresar la fecha del pago.");
+                        }
+                        else if (fecha > hoy) {
+                            errores.push("La fecha del pago no puede ser futura.");
+                            showError(inputFechaPago, "La fecha no puede ser futura.");
+                        }
+                        else {
+                            clearError(inputFechaPago);
+                        }
+                    }
+
+                    // ====================================================================================
+                    // ✅ SI HAY ERRORES → MOSTRAR ALERTA Y NO PERMITIR ENVIAR EL FORMULARIO
+                    // ====================================================================================
+                    if (errores.length > 0) {
+                        errorSummary.classList.remove("d-none");
+                        errorSummary.innerHTML = `
+                            <strong>Se encontraron los siguientes errores:</strong>
+                            <ul class="mb-0 mt-2">${errores.map(e => `<li>${e}</li>`).join("")}</ul>
+                        `;
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                        return;
+                    }
+
+                    // ============================
+                    // ✅ VALIDAR STOCK (SE EJECUTA DESPUÉS DE TODAS LAS VALIDACIONES ANTERIORES)
+                    // ============================
+                    if (!validarStock()) {
+                        errorSummary.classList.remove("d-none");
+                        errorSummary.innerHTML = `
+                            <strong>Se encontraron los siguientes errores:</strong>
+                            <ul class="mb-0 mt-2"><li>Stock insuficiente en algunos productos.</li></ul>
+                        `;
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                        return;
+                    }
+
+                    // ====================================================================================
+                    // ✅ CONFIRMAR ANTES DE GUARDAR (SweetAlert o confirm())
+                    // ====================================================================================
+                    const swalAvailable = (typeof Swal !== "undefined" && Swal.fire);
+                    const confirmPromise = swalAvailable
+                        ? Swal.fire({
+                            title: '¿Desea guardar el pedido?',
+                            text: "Verifique los datos antes de continuar.",
+                            icon: 'question',
+                            showCancelButton: true,
+                            confirmButtonColor: '#6a11cb',
+                            cancelButtonColor: '#d33',
+                            confirmButtonText: 'Sí, guardar',
+                            cancelButtonText: 'Cancelar'
+                        })
+                        : Promise.resolve({ isConfirmed: window.confirm('¿Desea guardar el pedido?') });
+
+                    confirmPromise.then((result) => {
+                        try {
+                            const ok = (result && (result.isConfirmed === true || result === true));
+                            if (ok) {
+                                form.submit();
+                            }
+                        } catch (errSend) {
+                            console.error("Error al intentar enviar el formulario:", errSend);
+                            Swal && Swal.fire 
+                                ? Swal.fire("Error", "Ocurrió un error al enviar. Revisa la consola.", "error") 
+                                : alert("Ocurrió un error al enviar. Revisa la consola.");
+                        }
+                    });
+
+                } catch (err) {
+                    console.error("Excepción en submit handler:", err);
+                    errorSummary.classList.remove("d-none");
+                    errorSummary.innerHTML = `
+                        <strong>Ocurrió un error inesperado:</strong>
+                        <div class="mt-2 small text-muted">${err.message || err}</div>
+                    `;
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                }
+            });
+
+            // ---------------------------------------
+            // LÓGICA DE PRODUCTOS DINÁMICOS (binding como 'detalles')
+            // ---------------------------------------
+            const productosDisponibles = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(productos));
+            const detallesIniciales = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(detallesIniciales));
+            let contador = 0;
+
+            function crearFilaProducto(initial = {}) {
+                const id = contador++;
+                const fila = document.createElement("div");
+                fila.classList.add("row", "g-3", "align-items-end", "mb-3", "producto-item");
+
+                // IMPORTANTE: agregamos un hidden input detalles.Index para ayudar al model binder de ASP.NET
+                fila.innerHTML = `
+                    <input type="hidden" name="detalles.Index" value="${id}" />
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Producto</label>
+                        <select name="detalles[${id}].IDProducto" class="form-select border-0 shadow-sm rounded-3 selectProducto">
+                            <option value="">Seleccione...</option>
+                            ${productosDisponibles.map(p =>
+                                `<option value="${p.IDProducto}" data-precio="${p.PrecioUnitario_Producto}" data-stock="${p.Stock_Producto}">
+                                    ${p.Nombre_Producto} (Stock: ${p.Stock_Producto})
+                                </option>`
+                            ).join("")}
+                        </select>
+                    </div>
+
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold">Precio (Q)</label>
+                        <input name="detalles[${id}].PrecioUnitario" type="text" readonly
+                            class="form-control border-0 shadow-sm rounded-3 inputPrecio" value="0.00" />
+                    </div>
+
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold">Cantidad</label>
+                        <input name="detalles[${id}].Cantidad" type="number" min="1" value="1"
+                            class="form-control border-0 shadow-sm rounded-3 inputCantidad" />
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">Subtotal (Q)</label>
+                        <input name="detalles[${id}].Subtotal" type="text" readonly
+                            class="form-control border-0 shadow-sm rounded-3 inputSubtotal" value="0.00" />
+                    </div>
+
+                    <div class="col-md-1 text-center">
+                        <button type="button" class="btn btn-outline-danger rounded-pill btnEliminar">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                `;
+
+                productosContainer.appendChild(fila);
+
+                const select = fila.querySelector(".selectProducto");
+                const cantidad = fila.querySelector(".inputCantidad");
+                const btnEliminar = fila.querySelector(".btnEliminar");
+
+                // listeners correctamente apuntando a las funciones definidas arriba
+                select.addEventListener("change", function () {
+                    actualizarPrecioYSubtotal.call(this);
+                    validarStock();
+                });
+                cantidad.addEventListener("input", function () {
+                    calcularSubtotal.call(this);
+                    validarStock();
+                });
+                btnEliminar.addEventListener("click", () => {
+                    fila.remove();
+                    actualizarTotalGeneral();
+                });
+
+                // Si se proporcionó initial (para edición), rellenar valores
+                if (initial && initial.IDProducto) {
+                    const option = Array.from(select.options).find(o => o.value == initial.IDProducto);
+                    if (option) {
+                        option.selected = true;
+                        // disparar cambio para setear precio
+                        select.dispatchEvent(new Event('change'));
+                        if (initial.Cantidad) {
+                            cantidad.value = initial.Cantidad;
+                            cantidad.dispatchEvent(new Event('input'));
+                        }
+                        // si viene Subtotal, respetarlo (pero recalculamos de todos modos)
+                    }
+                } else {
+                    // si no viene initial, ejecutar cálculo inicial del subtotal
+                    // (trigger para asegurar que subtotal y total se actualicen)
+                    select.dispatchEvent(new Event('change'));
+                    cantidad.dispatchEvent(new Event('input'));
+                }
+
+                return fila;
+            }
+
+            // INICIALIZAR PRODUCTOS
+            const btnAgregarProducto = document.getElementById("btnAgregarProducto");
+            if (btnAgregarProducto) {
+                btnAgregarProducto.addEventListener("click", () => crearFilaProducto());
+            }
+
+            // Si hay detalles iniciales (edición), crearlos
+            if (Array.isArray(detallesIniciales) && detallesIniciales.length > 0) {
+                detallesIniciales.forEach(d => {
+                    crearFilaProducto(d);
+                });
+
+                // Aseguramos que los subtotales/total se actualicen después de crear filas (por si hay render async)
+                setTimeout(() => {
+                    // recalcular cada fila (en caso de que los inputs hayan sido seteados pero eventos no disparados)
+                    document.querySelectorAll(".producto-item").forEach(item => {
+                        const select = item.querySelector(".selectProducto");
+                        const cantidad = item.querySelector(".inputCantidad");
+                        if (select) select.dispatchEvent(new Event('change'));
+                        if (cantidad) cantidad.dispatchEvent(new Event('input'));
+                    });
+                    actualizarTotalGeneral();
+                    validarStock();
+                }, 50);
+            } else {
+                // Crear una fila por defecto
+                crearFilaProducto();
+            }
+
+            // --------------------------------------------------
+            // 🔍 BUSCAR CLIENTE DINÁMICAMENTE (mejor manejo de campos de respuesta)
+            // --------------------------------------------------
+            const resultados = document.getElementById("resultadosClientes");
+
+            if (inputBuscar) {
+                inputBuscar.addEventListener("input", async function () {
+                    const term = this.value.trim();
+                    if (!resultados) return;
+                    resultados.innerHTML = "";
+                    inputIDCliente.value = ""; // limpiar selección si escribe manualmente
+                    if (term.length < 2) {
+                        resultados.style.display = "none";
+                        return;
+                    }
+
+                    try {
+                        const resp = await fetch(`/Pedido/Buscar?term=${encodeURIComponent(term)}`);
+                        if (!resp.ok) throw new Error('Error en la búsqueda');
+                        const data = await resp.json();
+
+                        if (!Array.isArray(data) || data.length === 0) {
+                            resultados.style.display = "none";
+                            return;
+                        }
+
+                        data.forEach(c => {
+                            const nombre = c.Nombre_Cliente || c.nombre || c.Nombre || '';
+                            const nit = c.NIT_Cliente || c.nit || c.NIT || '';
+                            const id = c.IDCliente || c.id || c.ID || c.Id || '';
+
+                            const item = document.createElement("button");
+                            item.type = 'button';
+                            item.className = "list-group-item list-group-item-action";
+                            item.innerHTML = `<strong>${nombre}</strong> <small class="text-muted">(${nit})</small>`;
+                            item.addEventListener("click", () => {
+                                inputBuscar.value = nombre;
+                                inputIDCliente.value = id;
+                                resultados.style.display = "none";
+                                clearError(inputIDCliente);
+                                inputBuscar.classList.add("is-valid");
+                            });
+                            resultados.appendChild(item);
+                        });
+
+                        resultados.style.display = "block";
+                    } catch (err) {
+                        console.error(err);
+                        resultados.style.display = "none";
+                    }
+                });
+
+                // Ocultar resultados al hacer clic fuera
+                document.addEventListener("click", (e) => {
+                    if (resultados && !resultados.contains(e.target) && e.target !== inputBuscar) {
+                        resultados.style.display = "none";
+                    }
+                });
+            }
+
+            // --------------------------------------------------
+            // 🧾 GUARDAR NUEVO CLIENTE (incluye token antiforgery si existe)
+            // --------------------------------------------------
+            const btnGuardarNuevoCliente = document.getElementById("btnGuardarNuevoCliente");
+            if (btnGuardarNuevoCliente) {
+                btnGuardarNuevoCliente.addEventListener("click", async () => {
+                    const nombreEl = document.getElementById("nuevoNombre");
+                    const apellidoEl = document.getElementById("nuevoApellido");
+                    const nitEl = document.getElementById("nuevoNIT");
+                    const telefonoEl = document.getElementById("nuevoTelefono");
+                    const direccionEl = document.getElementById("nuevoDireccion");
+
+                    const nombre = nombreEl ? nombreEl.value.trim() : "";
+                    const apellido = apellidoEl ? apellidoEl.value.trim() : "";
+                    const nit = nitEl ? nitEl.value.trim() : "";
+                    const telefono = telefonoEl ? telefonoEl.value.trim() : "";
+                    const direccion = direccionEl ? direccionEl.value.trim() : "";
+
+                    if (!nombre) {
+                        Swal.fire("Campo requerido", "Debe ingresar al menos el nombre del cliente.", "warning");
+                        return;
+                    }
+
+                    const tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+                    const headers = { "Content-Type": "application/json" };
+                    if (tokenInput) headers['RequestVerificationToken'] = tokenInput.value;
+
+                    try {
+                        const resp = await fetch("/Pedido/CrearRapido", {
+                            method: "POST",
+                            headers,
+                            body: JSON.stringify({
+                                Nombre_Cliente: nombre,
+                                Apellido_Cliente: apellido,
+                                NIT_Cliente: nit,
+                                Telefono_Cliente: telefono,
+                                Direccion_Cliente: direccion
+                            })
+                        });
+
+                        const data = await resp.json();
+
+                        if (data.error) {
+                            Swal.fire("Error", data.error, "error");
+                            return;
+                        }
+
+                        inputBuscar.value = data.nombre || data.Nombre_Cliente || (data.Nombre || '');
+                        inputIDCliente.value = data.id || data.IDCliente || data.Id || data.ID || '';
+
+                        const modalEl = document.getElementById("modalNuevoCliente");
+                        const modalInstance = bootstrap.Modal.getInstance(modalEl);
+                        if (modalInstance) modalInstance.hide();
+
+                        Swal.fire({
+                            icon: "success",
+                            title: "Cliente agregado",
+                            text: `${inputBuscar.value} se agregó correctamente.`,
+                            timer: 1800,
+                            showConfirmButton: false
+                        });
+
+                        clearError(inputIDCliente);
+                    } catch (err) {
+                        console.error(err);
+                        Swal.fire("Error", "No se pudo guardar el cliente. Intente nuevamente.", "error");
+                    }
+                });
+            }
+
+            // --------------------------------------------------
+            // 💳 GUARDAR NUEVO MÉTODO DE PAGO (misma lógica)
+            // --------------------------------------------------
+            const btnGuardarMetodoPago = document.getElementById("btnGuardarMetodoPago");
+            if (btnGuardarMetodoPago) {
+                btnGuardarMetodoPago.addEventListener("click", async () => {
+                    const nuevoMetodoEl = document.getElementById("nuevoMetodoPago");
+                    const nombre = nuevoMetodoEl ? nuevoMetodoEl.value.trim() : "";
+
+                    if (!nombre) {
+                        Swal.fire("Campo requerido", "Debe ingresar un nombre para el método de pago.", "warning");
+                        return;
+                    }
+
+                    const tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+                    const headers = { "Content-Type": "application/json" };
+                    if (tokenInput) headers['RequestVerificationToken'] = tokenInput.value;
+
+                    try {
+                        const resp = await fetch("/MetodoPago/CrearRapido", {
+                            method: "POST",
+                            headers,
+                            body: JSON.stringify({ NombreMetodo: nombre })
+                        });
+
+                        const data = await resp.json();
+
+                        if (!data.success) {
+                            Swal.fire("Error", data.message || "No se pudo guardar el método de pago.", "error");
+                            return;
+                        }
+
+                        const select = document.getElementById("IDMetodoPago");
+                        const option = new Option(data.nombre || nombre, data.id, true, true);
+                        select.appendChild(option);
+
+                        const modalEl = document.getElementById("modalNuevoMetodoPago");
+                        const modalInstance = bootstrap.Modal.getInstance(modalEl);
+                        if (modalInstance) modalInstance.hide();
+
+                        Swal.fire({
+                            icon: "success",
+                            title: "Método de pago agregado",
+                            text: `${data.nombre || nombre} se agregó correctamente.`,
+                            timer: 1800,
+                            showConfirmButton: false
+                        });
+
+                    } catch (err) {
+                        console.error(err);
+                        Swal.fire("Error", "No se pudo guardar el método de pago. Intente nuevamente.", "error");
+                    }
+                });
+            }
+
+            // --------------------------------------------------
+            // 💰 GUARDAR NUEVO ESTADO DE PAGO (misma lógica)
+            // --------------------------------------------------
+            const btnGuardarEstadoPago = document.getElementById("btnGuardarEstadoPago");
+            if (btnGuardarEstadoPago) {
+                btnGuardarEstadoPago.addEventListener("click", async () => {
+                    const nuevoEstadoEl = document.getElementById("nuevoEstadoPago");
+                    const nombre = nuevoEstadoEl ? nuevoEstadoEl.value.trim() : "";
+
+                    if (!nombre) {
+                        Swal.fire("Campo requerido", "Debe ingresar un nombre para el estado de pago.", "warning");
+                        return;
+                    }
+
+                    const tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+                    const headers = { "Content-Type": "application/json" };
+                    if (tokenInput) headers['RequestVerificationToken'] = tokenInput.value;
+
+                    try {
+                        const resp = await fetch("/EstadoPago/CrearRapido", {
+                            method: "POST",
+                            headers,
+                            body: JSON.stringify({ NombreEstado: nombre })
+                        });
+
+                        const data = await resp.json();
+
+                        if (!data.success) {
+                            Swal.fire("Error", data.message || "No se pudo guardar el estado de pago.", "error");
+                            return;
+                        }
+
+                        const select = document.getElementById("IDEstadoPago");
+                        const option = new Option(data.nombre || nombre, data.id, true, true);
+                        select.appendChild(option);
+
+                        const modalEl = document.getElementById("modalNuevoEstadoPago");
+                        const modalInstance = bootstrap.Modal.getInstance(modalEl);
+                        if (modalInstance) modalInstance.hide();
+
+                        Swal.fire({
+                            icon: "success",
+                            title: "Estado de pago agregado",
+                            text: `${data.nombre || nombre} se agregó correctamente.`,
+                            timer: 1800,
+                            showConfirmButton: false
+                        });
+
+                    } catch (err) {
+                        console.error(err);
+                        Swal.fire("Error", "No se pudo guardar el estado de pago. Intente nuevamente.", "error");
+                    }
+                });
+            }
+
+            // ---------------------------------------
+            // MENSAJE DE ÉXITO TRAS GUARDAR (Razor)
+            // ---------------------------------------
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <text>
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Pedido guardado',
+                    text: '@TempData["SuccessMessage"]',
+                    timer: 1800,
+                    showConfirmButton: false
+                });
+                </text>
+            }
+        });
+    </script>
+}

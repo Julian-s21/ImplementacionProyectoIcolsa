@@ -1,0 +1,38 @@
+@model dynamic
+@{
+    ViewData["Title"] = "Perfil de Usuario";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-5">
+    <div class="card shadow-lg border-0 rounded-4 p-4 mx-auto" style="max-width: 600px;">
+        <div class="text-center mb-4">
+            <h2 class="fw-bold text-primary">Perfil del Usuario</h2>
+            <hr />
+        </div>
+
+        <dl class="row">
+            <dt class="col-sm-4">ID de Usuario:</dt>
+            <dd class="col-sm-8">@Model.IDUsuario</dd>
+
+            <dt class="col-sm-4">Nombre:</dt>
+            <dd class="col-sm-8">@Model.Nombre</dd>
+
+            <dt class="col-sm-4">Correo:</dt>
+            <dd class="col-sm-8">@Model.Correo</dd>
+
+            <dt class="col-sm-4">Rol:</dt>
+            <dd class="col-sm-8">@Model.Rol</dd>
+        </dl>
+
+        <div class="text-center mt-4">
+            <a asp-controller="Usuario" asp-action="Logout" class="btn btn-danger px-4 me-2">
+                <i class="bi bi-box-arrow-right"></i> Cerrar sesión
+            </a>
+
+            <a asp-controller="Home" asp-action="Index" class="btn btn-secondary px-4">
+                <i class="bi bi-house-door"></i> Volver al inicio
+            </a>
+        </div>
+    </div>
+</div>

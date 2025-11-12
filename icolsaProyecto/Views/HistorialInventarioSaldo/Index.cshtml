@@ -1,0 +1,334 @@
+@model List<icolsaProyecto.Models.HistorialInventarioSaldo>
+
+@{
+    ViewData["Title"] = "Historial de Inventario";
+
+    var userRol = Context.Session.GetString("UsuarioRol");
+    Layout = userRol == "Administrativo" || userRol == "Secretario" || userRol == "Empleado"
+        ? "~/Views/Shared/_LayoutAdministrativo.cshtml"
+        : "~/Views/Shared/_Layout.cshtml";
+
+    int totalMovimientos = Model?.Count ?? 0;
+}
+
+<!-- Fuentes y estilos -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@500;600&display=swap" rel="stylesheet" />
+<link href="https://unpkg.com/intro.js/minified/introjs.min.css" rel="stylesheet" />
+
+<div class="container py-5" style="font-family: 'Inter', sans-serif;">
+
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb bg-white p-3 rounded shadow-sm">
+            <li class="breadcrumb-item">
+                <a asp-controller="Home" asp-action="Index" class="text-decoration-none text-primary fw-semibold">
+                    <i class="bi bi-house-door me-1"></i> Inicio
+                </a>
+            </li>
+            <li class="breadcrumb-item active fw-semibold text-dark" aria-current="page">Historial de Inventario</li>
+        </ol>
+    </nav>
+
+    <!-- Encabezado -->
+    <div class="alert alert-light border-start border-4 border-primary shadow-sm rounded-4 mb-4 d-flex justify-content-between align-items-center flex-wrap">
+        <div class="d-flex align-items-center">
+            <i class="bi bi-clock-history text-primary fs-3 me-3"></i>
+            <div>
+                <h5 class="mb-0 fw-semibold" style="font-family:'Poppins', sans-serif;">Historial de Movimientos</h5>
+                <small class="text-muted">Registra y controla las actualizaciones del inventario.</small>
+            </div>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+            <button id="btnTour" class="btn btn-outline-primary btn-sm" data-bs-toggle="tooltip" title="Ver guía interactiva">
+                <i class="bi bi-info-circle me-1"></i> Guía
+            </button>
+            <a asp-controller="HistorialInventarioSaldo" asp-action="Create" class="btn btn-light btn-sm shadow-sm" title="Registrar nuevo movimiento">
+                <i class="bi bi-plus-circle me-1"></i> Nuevo Movimiento
+            </a>
+            <!-- 📄 Botón para abrir el modal de reporte -->
+            <button class="btn btn-outline-secondary btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#modalReporte">
+                <i class="bi bi-file-earmark-pdf me-1"></i> Generar Reporte
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal para generar reporte -->
+    <div class="modal fade" id="modalReporte" tabindex="-1" aria-labelledby="modalReporteLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header text-white" style="background: linear-gradient(90deg, #6a11cb, #2575fc);">
+                    <h5 class="modal-title fw-semibold" id="modalReporteLabel">
+                        <i class="bi bi-file-earmark-text me-2"></i>Generar Reporte PDF
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body bg-light">
+                    <form id="formReporte" asp-controller="HistorialInventarioSaldo" asp-action="GenerarPDF" method="get">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold text-secondary">Tipo de Reporte</label>
+                            <select class="form-select shadow-sm" id="tipoReporte" name="tipoReporte" required>
+                                <option value="">Seleccione una opción</option>
+                                <option value="general">Reporte General</option>
+                                <option value="fechas">Por Rango de Fechas</option>
+                            </select>
+                        </div>
+
+                        <div id="rangoFechas" style="display:none;">
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold text-secondary">Fecha Inicial</label>
+                                <input type="date" name="fechaInicio" class="form-control shadow-sm" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold text-secondary">Fecha Final</label>
+                                <input type="date" name="fechaFin" class="form-control shadow-sm" />
+                            </div>
+                        </div>
+
+                        <div class="text-end mt-3">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-filetype-pdf me-1"></i> Generar PDF
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Panel principal -->
+    <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+        <div class="card-header text-white py-4 px-4 d-flex justify-content-between align-items-center flex-wrap"
+             style="background: linear-gradient(90deg, #6a11cb, #2575fc);">
+            <h3 class="mb-0 fw-semibold d-flex align-items-center">
+                <i class="bi bi-archive me-2 fs-4"></i> Historial de Inventario
+            </h3>
+        </div>
+
+        <div class="card-body p-4 bg-light">
+
+            <!-- 🔍 Filtros -->
+            <div class="row mb-4 g-3 align-items-end" id="busquedaHistorial">
+
+                <!-- Búsqueda general -->
+                <div class="col-lg-4 col-md-6">
+                    <label for="searchInput" class="form-label fw-semibold text-secondary">Buscar movimiento</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0">
+                            <i class="bi bi-search text-muted"></i>
+                        </span>
+                        <input type="text" id="searchInput" class="form-control border-start-0 shadow-sm"
+                               placeholder="Buscar por tipo, producto o ID..." />
+                    </div>
+                </div>
+
+                <!-- Filtro por Producto -->
+                <div class="col-lg-4 col-md-3">
+                    <label for="filtroProducto" class="form-label fw-semibold text-secondary">Filtrar por Producto</label>
+                    <select id="filtroProducto" class="form-select shadow-sm">
+                        <option value="">Todos</option>
+                        @foreach (var prod in (Model ?? Enumerable.Empty<icolsaProyecto.Models.HistorialInventarioSaldo>())
+                            .Select(h => h.Producto?.Nombre_Producto)
+                            .Where(p => !string.IsNullOrEmpty(p))
+                            .Distinct())
+                        {
+                            <option value="@prod">@prod</option>
+                        }
+                    </select>
+                </div>
+
+                <!-- Filtro por Tipo Movimiento -->
+                <div class="col-lg-4 col-md-3">
+                    <label for="filtroTipo" class="form-label fw-semibold text-secondary">Filtrar por Tipo</label>
+                    <select id="filtroTipo" class="form-select shadow-sm">
+                        <option value="">Todos</option>
+                        @foreach (var tipo in (Model ?? Enumerable.Empty<icolsaProyecto.Models.HistorialInventarioSaldo>())
+                            .Select(h => h.TipoMovimiento)
+                            .Where(t => !string.IsNullOrEmpty(t))
+                            .Distinct())
+                        {
+                            <option value="@tipo">@tipo</option>
+                        }
+                    </select>
+                </div>
+            </div>
+
+            <!-- 📊 Estadísticas -->
+            <div class="row justify-content-center mb-4">
+                <div class="col-md-6">
+                    <div class="bg-white p-3 rounded shadow-sm border-start border-4 border-primary text-center">
+                        <i class="bi bi-list-check me-1"></i>
+                        <span class="fw-semibold text-muted me-2">Total movimientos:</span>
+                        <span class="fw-bold">@totalMovimientos</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 🧾 Tabla -->
+            @if (Model != null && Model.Any())
+            {
+                <div class="table-responsive" id="tablaHistorial">
+                    <table class="table table-hover align-middle bg-white rounded-4 shadow-sm text-center">
+                        <thead class="text-white" style="background: linear-gradient(90deg, #6a11cb, #2575fc);">
+                            <tr>
+                                <th>ID</th>
+                                <th>Producto</th>
+                                <th>Tipo Movimiento</th>
+                                <th>Saldo Actual</th>
+                                <th>Fecha Actualización</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var h in Model)
+                            {
+                                <tr>
+                                    <td>@h.IDInventarioSaldo</td>
+                                    <td>@h.Producto?.Nombre_Producto</td>
+                                    <td>
+                                        <span class="badge @(h.TipoMovimiento == "Entrada" ? "bg-success" : "bg-danger")">
+                                            @h.TipoMovimiento
+                                        </span>
+                                    </td>
+                                    <td class="fw-semibold text-primary">@h.Saldo_Actual</td>
+                                    <td>@h.Fecha_Actualizacion?.ToString("dd/MM/yyyy HH:mm")</td>
+                                    <td>
+                                        <div class="d-flex justify-content-center gap-2">
+                                            <form asp-action="LoadEdit" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@h.IDInventarioSaldo" />
+                                                <button type="submit" class="btn btn-outline-success btn-sm rounded-circle shadow-sm"
+                                                        data-bs-toggle="tooltip" title="Editar registro">
+                                                    <i class="bi bi-pencil-square"></i>
+                                                </button>
+                                            </form>
+
+                                            <form asp-action="DeleteConfirmed" method="post" id="formEliminar-@h.IDInventarioSaldo">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@h.IDInventarioSaldo" />
+                                                <button type="button" onclick="confirmarEliminacion('formEliminar-@h.IDInventarioSaldo')"
+                                                        class="btn btn-outline-danger btn-sm rounded-circle shadow-sm"
+                                                        data-bs-toggle="tooltip" title="Eliminar registro">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-5">
+                    <i class="bi bi-info-circle text-primary fs-3"></i>
+                    <p class="mt-2 mb-0 text-muted fw-semibold">No hay movimientos registrados.</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://unpkg.com/intro.js/minified/intro.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        // Inicializar tooltips
+        document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
+
+        // Mostrar campos de fechas solo si se elige "Por Rango de Fechas"
+        document.getElementById('tipoReporte').addEventListener('change', function () {
+            const rango = document.getElementById('rangoFechas');
+            rango.style.display = this.value === 'fechas' ? 'block' : 'none';
+        });
+
+        // 🔍 Búsqueda + filtros (con debounce)
+        (() => {
+            const search = document.getElementById('searchInput');
+            const filtroProd = document.getElementById('filtroProducto');
+            const filtroTipo = document.getElementById('filtroTipo');
+            const filas = document.querySelectorAll('#tablaHistorial tbody tr');
+            let timer;
+
+            function aplicarFiltros() {
+                const term = search.value.toLowerCase();
+                const prod = filtroProd.value.toLowerCase();
+                const tipo = filtroTipo.value.toLowerCase();
+
+                filas.forEach(row => {
+                    const texto = row.textContent.toLowerCase();
+                    const coincideBusqueda = texto.includes(term);
+                    const coincideProd = !prod || texto.includes(prod);
+                    const coincideTipo = !tipo || texto.includes(tipo);
+                    row.style.display = (coincideBusqueda && coincideProd && coincideTipo) ? '' : 'none';
+                });
+            }
+
+            [search, filtroProd, filtroTipo].forEach(el => {
+                el.addEventListener('input', () => {
+                    clearTimeout(timer);
+                    timer = setTimeout(aplicarFiltros, 250);
+                });
+            });
+        })();
+
+        // 🗑 Confirmar eliminación
+        function confirmarEliminacion(formId) {
+            Swal.fire({
+                title: "¿Eliminar registro?",
+                text: "Esta acción no se puede deshacer.",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#2575fc",
+                cancelButtonColor: "#d33",
+                confirmButtonText: "Sí, eliminar",
+                cancelButtonText: "Cancelar"
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById(formId).submit();
+                }
+            });
+        }
+
+        // ✅ Mensaje de éxito
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <text>
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Operación exitosa',
+                    text: '@TempData["SuccessMessage"]',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            </text>
+        }
+
+        // 🧭 Tour interactivo (solo al presionar el botón)
+        (() => {
+            const pasos = [
+                { element: '#btnTour', intro: 'Haz clic aquí para iniciar la guía.', position: 'bottom' },
+                { element: '#busquedaHistorial', intro: 'Aquí puedes buscar o filtrar por producto o tipo de movimiento.', position: 'right' },
+                { element: '#tablaHistorial', intro: 'Aquí se muestra el historial completo con opciones de edición y eliminación.', position: 'top' }
+            ];
+
+            function iniciarTour() {
+                const intro = introJs();
+                intro.setOptions({
+                    steps: pasos,
+                    showProgress: true,
+                    nextLabel: 'Siguiente',
+                    prevLabel: 'Atrás',
+                    doneLabel: 'Finalizar'
+                });
+                intro.start();
+            }
+
+            document.getElementById('btnTour')?.addEventListener('click', iniciarTour);
+        })();
+    </script>
+}

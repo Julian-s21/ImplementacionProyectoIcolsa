@@ -1,0 +1,188 @@
+﻿
+@model IEnumerable<icolsaProyecto.Models.Producto>
+
+@{
+    ViewData["Title"] = "Hacer un nuevo pedido";
+    var userRol = Context.Session.GetString("UsuarioRol");
+    Layout = userRol == "Administrativo" || userRol == "Secretario" || userRol == "Empleado"
+        ? "~/Views/Shared/_LayoutAdministrativo.cshtml"
+        : "~/Views/Shared/_Layout.cshtml";
+}
+
+<!-- ================= HERO ================= -->
+<section class="hero-landing py-5 mb-5">
+    <div class="container">
+        <div class="row align-items-center g-4">
+            <div class="col-lg-6">
+                <h1 class="display-5 fw-bold text-dark">Haz tu pedido fácilmente</h1>
+                <p class="lead text-muted mb-4">
+                    Explora nuestro catálogo y selecciona los productos que deseas incluir en tu nuevo pedido.
+                </p>
+
+                <div class="d-flex gap-2 flex-wrap">
+                    
+
+                    <a href="https://wa.me/50241495773" target="_blank"
+                       class="btn btn-outline-success rounded-pill px-4 py-2 shadow-sm d-flex align-items-center">
+                        <i class="bi bi-whatsapp me-2"></i> WhatsApp
+                    </a>
+                </div>
+            </div>
+
+            <!-- visual hero: columnas de imágenes verticales (estilo editorial) -->
+            <div class="col-lg-6">
+                <div class="d-flex gap-3 hero-slices">
+                    <div class="slice rounded-3 overflow-hidden">
+                        <img src="~/images/Hilos.jpeg" alt="destacado 1" class="w-100 h-100 object-fit-cover" />
+                    </div>
+                    <div class="slice rounded-3 overflow-hidden">
+                        <img src="~/images/Globo.jpg" alt="destacado 2" class="w-100 h-100 object-fit-cover" />
+                    </div>
+                    <div class="slice rounded-3 overflow-hidden d-none d-md-block">
+                        <img src="~/images/cajas.jpeg" alt="destacado 3" class="w-100 h-100 object-fit-cover" />
+                    </div>
+                </div>
+            </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="container">
+
+    <!-- ================= BUSCADOR ================= -->
+    <div class="row mb-4 align-items-center">
+        <div class="col-md-6 mb-3 mb-md-0">
+            <form method="get" asp-action="Index" class="d-flex align-items-center gap-2 w-100">
+                <div class="input-group shadow-sm w-100 rounded-pill overflow-hidden">
+                    <input type="text" name="search" class="form-control border-0 ps-4 py-3"
+                           placeholder="🔍 Buscar productos, códigos o categorías..."
+                           value="@Context.Request.Query["search"]" aria-label="Buscar productos" />
+                    <button class="btn btn-gradient px-4 fw-semibold" type="submit">Buscar</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="col-md-6 text-md-end">
+            <div class="d-flex justify-content-md-end gap-2">
+                <select id="sortSelect" class="form-select w-auto rounded-pill" aria-label="Ordenar">
+                    <option value="">Ordenar: Recomendados</option>
+                    <option value="price_asc">Precio: bajo a alto</option>
+                    <option value="price_desc">Precio: alto a bajo</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= GRID PRINCIPAL ================= -->
+    <div class="row g-4" id="productsGrid">
+        @if (Model != null && Model.Any())
+        {
+            foreach (var producto in Model)
+            {
+                var imagenFinal = string.IsNullOrEmpty(producto.ImagenUrl)
+                    ? Url.Content("~/images/noimg.png")
+                    : producto.ImagenUrl;
+
+                <div class="col-12 col-sm-6 col-md-4 col-lg-3 product-col">
+                    <article class="card product-card h-100 border-0 shadow-sm rounded-4 overflow-hidden">
+                        <div class="position-relative product-media">
+                            <img src="@imagenFinal" alt="@producto.Nombre_Producto"
+                                 class="w-100 object-fit-cover product-img" />
+
+                            <div class="product-actions d-flex flex-column gap-2">
+                                <button class="btn btn-sm btn-light rounded-pill quick-view-btn"
+                                        data-id="@producto.IDProducto"
+                                        data-name="@producto.Nombre_Producto"
+                                        data-price="@(producto.PrecioUnitario_Producto?.ToString("0.00") ?? "0.00")"
+                                        data-img="@imagenFinal">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+
+                            <span class="stock-badge position-absolute top-0 start-0 m-2 px-3 py-1 rounded-pill text-white small"
+                                  style="background:@(producto.Stock_Producto > 0 ? "#28a745" : "#dc3545")">
+                                @(producto.Stock_Producto > 0 ? $"{producto.Stock_Producto} disponibles" : "Sin stock")
+                            </span>
+                        </div>
+
+                        <div class="card-body d-flex flex-column text-center">
+                            <h6 class="card-title mb-1 text-truncate">@producto.Nombre_Producto</h6>
+                            <p class="text-muted small mb-2">Código: @(producto.Codigo_Producto ?? "N/A")</p>
+                            <div class="mb-3">
+                                <span class="fw-bold fs-5 text-primary">Q @(producto.PrecioUnitario_Producto?.ToString("0.00") ?? "0.00")</span>
+                            </div>
+
+                            <div class="mt-auto">
+                                <a href="@Url.Action("CreateCliente", "Pedido", new { idProducto = producto.IDProducto })"
+                                   class="btn btn-outline-primary rounded-pill w-100">
+                                    <i class="bi bi-bag-check me-2"></i> Hacer pedido
+                                </a>
+                            </div>
+                        </div>
+                    </article>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="col-12 text-center text-muted py-5">
+                <i class="bi bi-box-seam fs-1 mb-3"></i>
+                <div>No hay productos disponibles en este momento.</div>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- ================= MODAL ================= -->
+<div class="modal fade" id="quickViewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content rounded-4 border-0 shadow-lg">
+            <div class="modal-body p-4">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <img id="qv-img" src="~/images/noimg.png" alt="producto" class="img-fluid rounded-3" />
+                    </div>
+                    <div class="col-md-6">
+                        <h4 id="qv-name" class="fw-bold"></h4>
+                        <div class="mb-3">
+                            <span id="qv-price" class="fs-4 fw-bold text-primary"></span>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <a id="qv-order" href="#" class="btn btn-gradient rounded-pill px-4">
+                                Hacer pedido
+                            </a>
+                            <button class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">
+                                Cerrar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ================= JS ================= -->
+<script>
+    (function () {
+        document.querySelectorAll('.quick-view-btn').forEach(btn => {
+            btn.addEventListener('click', function () {
+                const id = this.dataset.id;
+                const name = this.dataset.name;
+                const price = this.dataset.price;
+                const img = this.dataset.img;
+
+                document.getElementById('qv-name').textContent = name;
+                document.getElementById('qv-price').textContent = 'Q ' + price;
+                document.getElementById('qv-img').src = img || '@Url.Content("~/images/no-existe.png")';
+                document.getElementById('qv-order').href =
+                    '@Url.Action("Create", "Pedido")' + '?idProducto=' + id;
+
+                var quickModal = new bootstrap.Modal(document.getElementById('quickViewModal'));
+                quickModal.show();
+            });
+        });
+    })();
+</script>

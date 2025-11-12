@@ -1,0 +1,260 @@
+@model icolsaProyecto.Models.Producto
+
+@{
+    ViewData["Title"] = "Editar Producto";
+    var userRol = Context.Session.GetString("UsuarioRol");
+    Layout = userRol == "Administrativo" || userRol == "Secretario" || userRol == "Empleado"
+        ? "~/Views/Shared/_LayoutAdministrativo.cshtml"
+        : "~/Views/Shared/_Layout.cshtml";
+
+    var categorias = (ViewBag.Categorias as IEnumerable<icolsaProyecto.Models.Categoria>)?.ToList()
+                     ?? new List<icolsaProyecto.Models.Categoria>();
+}
+
+<div class="container py-5">
+    <!-- ENCABEZADO -->
+    <div class="bg-white/80 backdrop-blur-md shadow-lg rounded-4 border border-gray-100 p-4 mb-4">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h2 class="fw-bold mb-1 text-gradient"
+                    style="background: linear-gradient(90deg, #6a11cb, #2575fc);
+                           -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                    Editar Producto
+                </h2>
+                <p class="text-muted mb-0">Actualiza la información del producto seleccionado.</p>
+            </div>
+            <a asp-action="Index" asp-controller="Producto" class="btn btn-outline-primary rounded-pill fw-semibold shadow-sm">
+                <i class="bi bi-arrow-left me-1"></i> Volver
+            </a>
+        </div>
+    </div>
+
+    <!-- FORMULARIO -->
+    <div class="bg-white p-5 shadow-lg rounded-4 border-0">
+        <form asp-action="Edit"
+              asp-controller="Producto"
+              method="post"
+              enctype="multipart/form-data"
+              autocomplete="off"
+              id="formProducto"
+              novalidate>
+
+            @Html.AntiForgeryToken()
+            @Html.HiddenFor(model => model.IDProducto)
+
+            <div class="row g-4">
+                <!-- Nombre -->
+                <div class="col-md-6">
+                    <label asp-for="Nombre_Producto" class="form-label fw-semibold">Nombre del Producto</label>
+                    <input asp-for="Nombre_Producto"
+                           class="form-control border-0 shadow-sm rounded-3 focus-ring"
+                           placeholder="Ej. Globo metálico azul"
+                           maxlength="80" />
+                    <span class="invalid-feedback d-block small"></span>
+                </div>
+
+                <!-- Código -->
+                <div class="col-md-6">
+                    <label asp-for="Codigo_Producto" class="form-label fw-semibold">Código del Producto</label>
+                    <input asp-for="Codigo_Producto"
+                           class="form-control border-0 shadow-sm rounded-3 focus-ring"
+                           placeholder="Ej. GLB-001"
+                           maxlength="20" />
+                    <span class="invalid-feedback d-block small"></span>
+                </div>
+
+                <!-- Precio -->
+                <div class="col-md-6">
+                    <label asp-for="PrecioUnitario_Producto" class="form-label fw-semibold">Precio Unitario (Q)</label>
+                    <input asp-for="PrecioUnitario_Producto"
+                           type="number"
+                           step="0.01"
+                           min="0"
+                           class="form-control border-0 shadow-sm rounded-3 focus-ring"
+                           placeholder="Ej. 25.50" />
+                    <span class="invalid-feedback d-block small"></span>
+                </div>
+
+                <!-- Stock -->
+                <div class="col-md-6">
+                    <label asp-for="Stock_Producto" class="form-label fw-semibold">Cantidad en Stock</label>
+                    <input asp-for="Stock_Producto"
+                           type="number"
+                           min="0"
+                           step="1"
+                           class="form-control border-0 shadow-sm rounded-3 focus-ring"
+                           placeholder="Ej. 50" />
+                    <span class="invalid-feedback d-block small"></span>
+                </div>
+
+                <!-- Categoría -->
+                <div class="col-md-6">
+                    <label asp-for="IDCategoria" class="form-label fw-semibold">Categoría</label>
+                    <select asp-for="IDCategoria"
+                            asp-items="@(new SelectList(ViewBag.Categorias, nameof(Categoria.IDCategoria), nameof(Categoria.Nombre_Categoria)))"
+                            class="form-select border-0 shadow-sm rounded-3 focus-ring">
+                        <option value="">Seleccione una categoría</option>
+                    </select>
+                    <span class="invalid-feedback d-block small"></span>
+                </div>
+
+                <!-- Imagen actual -->
+                <div class="col-md-6 text-center">
+                    <label class="form-label fw-semibold">Imagen actual</label>
+                    @if (!string.IsNullOrEmpty(Model.ImagenUrl))
+                    {
+                        <div class="mb-2">
+                            <img src="@Model.ImagenUrl" alt="Imagen actual"
+                                 class="img-fluid rounded shadow-sm"
+                                 style="max-height: 200px;" />
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted small fst-italic">Sin imagen registrada</p>
+                    }
+
+                    <label class="form-label fw-semibold mt-2">Subir nueva imagen</label>
+                    <input type="file" name="imagenFile" id="imagenFile"
+                           accept="image/*"
+                           class="form-control border-0 shadow-sm rounded-3 focus-ring" />
+                    <span class="invalid-feedback d-block small"></span>
+                </div>
+
+                <!-- Previsualización de imagen -->
+                <div class="col-12 text-center">
+                    <img id="previewImg" src="#" alt="Vista previa" class="img-fluid rounded shadow-sm d-none" 
+                         style="max-height: 200px;" />
+                </div>
+            </div>
+
+            <!-- Resumen de errores -->
+            <div id="errorSummary" class="alert alert-danger mt-4 d-none rounded-4 shadow-sm">
+                <h6 class="fw-bold"><i class="bi bi-exclamation-triangle me-2"></i>Errores encontrados:</h6>
+                <ul class="mb-0"></ul>
+            </div>
+
+            <!-- BOTONES -->
+            <div class="text-center mt-5">
+                <button type="submit"
+                        class="btn btn-gradient px-5 py-2 rounded-pill text-white shadow-sm fw-semibold ripple"
+                        style="background: linear-gradient(90deg, #6a11cb, #2575fc);">
+                    <i class="bi bi-check-circle me-2"></i>Guardar Cambios
+                </button>
+                <a asp-action="Index" asp-controller="Producto"
+                   class="btn btn-outline-secondary px-5 py-2 rounded-pill ms-2 shadow-sm ripple">
+                    <i class="bi bi-x-circle me-2"></i>Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+<partial name="_ValidationScriptsPartial" />
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const form = document.getElementById("formProducto");
+    const errorSummary = document.getElementById("errorSummary");
+    const previewImg = document.getElementById("previewImg");
+    const imagenFile = document.getElementById("imagenFile");
+
+    // PREVISUALIZACIÓN DE IMAGEN
+    imagenFile.addEventListener("change", () => {
+        const file = imagenFile.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = e => {
+                previewImg.src = e.target.result;
+                previewImg.classList.remove("d-none");
+            };
+            reader.readAsDataURL(file);
+        } else previewImg.classList.add("d-none");
+    });
+
+    // FUNCIONES DE VALIDACIÓN
+    function showError(element, message) {
+        element.classList.remove("is-valid");
+        element.classList.add("is-invalid");
+        let feedback = element.parentElement.querySelector(".invalid-feedback");
+        if (!feedback) {
+            feedback = document.createElement("div");
+            feedback.classList.add("invalid-feedback", "d-block", "small");
+            element.parentElement.appendChild(feedback);
+        }
+        feedback.textContent = message;
+    }
+
+    function clearError(element) {
+        element.classList.remove("is-invalid");
+        element.classList.add("is-valid");
+        const fb = element.parentElement.querySelector(".invalid-feedback");
+        if (fb) fb.textContent = "";
+    }
+
+    // VALIDAR FORMULARIO
+    form.addEventListener("submit", function (event) {
+        let errores = [];
+
+        const nombre = form.querySelector("[name='Nombre_Producto']");
+        const codigo = form.querySelector("[name='Codigo_Producto']");
+        const precio = form.querySelector("[name='PrecioUnitario_Producto']");
+        const categoria = form.querySelector("[name='IDCategoria']");
+        const stock = form.querySelector("[name='Stock_Producto']");
+        const imagen = imagenFile.files[0];
+
+        // VALIDACIONES DETALLADAS
+        if (!nombre.value.trim()) showError(nombre, "Debe ingresar el nombre del producto.");
+        else if (nombre.value.trim().length < 3)
+            showError(nombre, "El nombre debe tener al menos 3 caracteres.");
+        else clearError(nombre);
+
+        if (!codigo.value.trim()) showError(codigo, "Debe ingresar el código del producto.");
+        else if (!/^[A-Za-z0-9\-]+$/.test(codigo.value.trim()))
+            showError(codigo, "El código solo puede contener letras, números y guiones.");
+        else clearError(codigo);
+
+        const precioVal = parseFloat(precio.value);
+        if (isNaN(precioVal) || precioVal <= 0)
+            showError(precio, "Ingrese un precio unitario válido mayor a 0.");
+        else clearError(precio);
+
+        const stockVal = parseInt(stock.value);
+        if (isNaN(stockVal) || stockVal < 0)
+            showError(stock, "Debe ingresar una cantidad válida en stock (0 o mayor).");
+        else clearError(stock);
+
+        if (!categoria.value)
+            showError(categoria, "Debe seleccionar una categoría.");
+        else clearError(categoria);
+
+        if (imagen) {
+            const ext = imagen.name.split('.').pop().toLowerCase();
+            const validExt = ["jpg", "jpeg", "png", "gif", "webp"];
+            if (!validExt.includes(ext)) showError(imagenFile, "La imagen debe ser JPG, PNG, GIF o WEBP.");
+            else if (imagen.size > 2 * 1024 * 1024)
+                showError(imagenFile, "El tamaño máximo permitido es 2 MB.");
+            else clearError(imagenFile);
+        } else clearError(imagenFile);
+
+        // RESUMEN DE ERRORES
+        document.querySelectorAll(".is-invalid").forEach(el => {
+            const fb = el.parentElement.querySelector(".invalid-feedback");
+            if (fb && fb.textContent) errores.push(fb.textContent);
+        });
+
+        if (errores.length > 0) {
+            errorSummary.classList.remove("d-none");
+            errorSummary.innerHTML = `<h6 class="fw-bold"><i class="bi bi-exclamation-triangle me-2"></i>Errores encontrados:</h6>
+            <ul class="mb-0 mt-2">${errores.map(e => `<li>${e}</li>`).join("")}</ul>`;
+            window.scrollTo({ top: 0, behavior: "smooth" });
+            event.preventDefault();
+            return false;
+        }
+
+        errorSummary.classList.add("d-none");
+    });
+});
+</script>
+}

@@ -1,0 +1,276 @@
+    @model List<icolsaProyecto.Models.Producto>
+
+    @{
+        ViewData["Title"] = "Gestión de Productos";
+
+    var userRol = Context.Session.GetString("UsuarioRol");
+    Layout = userRol == "Administrativo" || userRol == "Secretario" || userRol == "Empleado"
+        ? "~/Views/Shared/_LayoutAdministrativo.cshtml"
+        : "~/Views/Shared/_Layout.cshtml";
+        decimal totalValor = Model?.Sum(p => (p.PrecioUnitario_Producto ?? 0) * (p.Stock_Producto ?? 0)) ?? 0;
+        int totalProductos = Model?.Count ?? 0;
+    }
+
+    <!-- Fuentes y estilos -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@500;600&display=swap" rel="stylesheet" />
+    <link href="https://unpkg.com/intro.js/minified/introjs.min.css" rel="stylesheet" />
+
+    <div class="container py-5" style="font-family: 'Inter', sans-serif;">
+
+        <!-- Breadcrumb -->
+        <nav aria-label="breadcrumb" class="mb-4">
+            <ol class="breadcrumb bg-white p-3 rounded shadow-sm">
+                <li class="breadcrumb-item">
+                    <a asp-controller="Home" asp-action="Index" class="text-decoration-none text-primary fw-semibold">
+                        <i class="bi bi-house-door me-1"></i> Inicio
+                    </a>
+                </li>
+                <li class="breadcrumb-item active fw-semibold text-dark" aria-current="page">Productos</li>
+            </ol>
+        </nav>
+
+        <!-- Encabezado con acciones -->
+        <div class="alert alert-light border-start border-4 border-primary shadow-sm rounded-4 mb-4 d-flex justify-content-between align-items-center flex-wrap">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-box-seam text-primary fs-3 me-3"></i>
+                <div>
+                    <h5 class="mb-0 fw-semibold" style="font-family:'Poppins', sans-serif;">Gestión de Productos</h5>
+                    <small class="text-muted">Administra el catálogo de productos con facilidad.</small>
+                </div>
+            </div>
+
+            <div class="d-flex align-items-center gap-2">
+                <button id="btnTour" class="btn btn-outline-primary btn-sm" data-bs-toggle="tooltip" title="Ver guía interactiva">
+                    <i class="bi bi-info-circle me-1"></i> Guía
+                </button>
+                <a asp-controller="Producto" asp-action="Create" class="btn btn-light btn-sm shadow-sm" title="Registrar nuevo producto">
+                    <i class="bi bi-plus-circle me-1"></i> Nuevo Producto
+                </a>
+            </div>
+        </div>
+
+        <!-- Panel principal -->
+        <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+
+            <!-- Header -->
+            <div class="card-header text-white py-4 px-4 d-flex justify-content-between align-items-center flex-wrap" style="background: linear-gradient(90deg, #6a11cb, #2575fc);">
+                <h3 class="mb-0 fw-semibold d-flex align-items-center">
+                    <i class="bi bi-boxes me-2 fs-4"></i> Inventario de Productos
+                </h3>
+            </div>
+
+            <!-- Body -->
+            <div class="card-body p-4 bg-light">
+
+                <!-- Filtros -->
+                <div class="row mb-4 g-3 align-items-end" id="busquedaProductos">
+                    <div class="col-lg-4 col-md-6">
+                        <label for="searchInput" class="form-label fw-semibold text-secondary">Buscar producto</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                            <input type="text" id="searchInput" class="form-control border-start-0 shadow-sm" placeholder="Buscar por nombre o código..." />
+                        </div>
+                    </div>
+
+                    <div class="col-lg-4 col-md-3">
+                        <label for="filtroCategoria" class="form-label fw-semibold text-secondary">Filtrar por Categoría</label>
+                        <select id="filtroCategoria" class="form-select shadow-sm">
+                            <option value="">Todas</option>
+                            @foreach (var categoria in Model.Where(p => p.Categoria != null)
+                                .Select(p => p.Categoria.Nombre_Categoria).Distinct())
+                            {
+                                <option value="@categoria">@categoria</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="col-lg-4 col-md-3">
+                        <label for="filtroStock" class="form-label fw-semibold text-secondary">Filtrar por Stock</label>
+                        <select id="filtroStock" class="form-select shadow-sm">
+                            <option value="">Todos</option>
+                            <option value="disponible">Con stock</option>
+                            <option value="agotado">Agotado</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Estadísticas -->
+                <div class="row justify-content-center mb-4">
+                    <div class="col-md-5 mb-3 mb-md-0">
+                        <div class="bg-white p-3 rounded shadow-sm border-start border-4 border-primary text-center">
+                            <i class="bi bi-box me-1"></i>
+                            <span class="fw-semibold text-muted me-2">Total productos:</span>
+                            <span class="fw-bold">@totalProductos</span>
+                        </div>
+                    </div>
+                    <div class="col-md-5">
+                        <div class="bg-white p-3 rounded shadow-sm border-start border-4 border-success text-center">
+                            <i class="bi bi-currency-dollar me-1"></i>
+                            <span class="fw-semibold text-muted me-2">Valor total del inventario:</span>
+                            <span class="fw-bold text-success">Q @totalValor.ToString("N2")</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabla -->
+                @if (Model != null && Model.Any())
+                {
+                    <div class="table-responsive" id="tablaProductos">
+                        <table class="table table-hover align-middle bg-white rounded-4 shadow-sm text-center">
+                            <thead class="text-white" style="background: linear-gradient(90deg, #6a11cb, #2575fc);">
+                                <tr>
+                                    <th>Imagen</th>
+                                    <th>Nombre</th>
+                                    <th>Código</th>
+                                    <th>Categoría</th>
+                                    <th>Precio (Q)</th>
+                                    <th>Stock disponible</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var p in Model)
+                                {
+                                    <tr>
+                                        <td>
+                                            <img src="@(!string.IsNullOrEmpty(p.ImagenUrl) ? p.ImagenUrl : "/images/placeholder.png")"
+                                                class="rounded" width="55" height="55" style="object-fit: cover;" />
+                                        </td>
+                                        <td class="fw-semibold">@p.Nombre_Producto</td>
+                                        <td>@p.Codigo_Producto</td>
+                                        <td>@p.Categoria?.Nombre_Categoria</td>
+                                        <td class="text-success fw-bold">@p.PrecioUnitario_Producto?.ToString("N2")</td>
+                                        <td class="fw-semibold @(p.Stock_Producto > 0 ? "text-primary" : "text-danger")">
+                                            @(p.Stock_Producto > 0 ? p.Stock_Producto + " unidades" : "Agotado")
+                                        </td>
+                                        <td>
+                                            <div class="d-flex justify-content-center gap-2">
+                                                <form asp-action="LoadEdit" method="post" class="d-inline">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="id" value="@p.IDProducto" />
+                                                    <button type="submit" class="btn btn-outline-success btn-sm rounded-circle shadow-sm" data-bs-toggle="tooltip" title="Editar cuenta">
+                                                        <i class="bi bi-pencil-square"></i>
+                                                    </button>
+                                                </form>
+                                                @if (userRol == "Administrativo")
+                                                        {
+                                                <form asp-action="DeleteConfirmed" method="post" id="formEliminar-@p.IDProducto">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="id" value="@p.IDProducto" />
+                                                    <button type="button" onclick="confirmarEliminacion('formEliminar-@p.IDProducto')"
+                                                            class="btn btn-outline-danger btn-sm rounded-circle shadow-sm"
+                                                            data-bs-toggle="tooltip" title="Eliminar producto">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </form>
+                                                 }
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center py-5">
+                        <i class="bi bi-info-circle text-primary fs-3"></i>
+                        <p class="mt-2 mb-0 text-muted fw-semibold">No hay productos registrados.</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    @section Scripts {
+        <script src="https://unpkg.com/intro.js/minified/intro.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+        <script>
+            // Tooltips
+            document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
+
+            // Filtros dinámicos
+            (() => {
+                const search = document.getElementById('searchInput');
+                const filtroCategoria = document.getElementById('filtroCategoria');
+                const filtroStock = document.getElementById('filtroStock');
+                const filas = document.querySelectorAll('#tablaProductos tbody tr');
+
+                function aplicarFiltros() {
+                    const term = search.value.toLowerCase();
+                    const categoria = filtroCategoria.value.toLowerCase();
+                    const stock = filtroStock.value.toLowerCase();
+
+                    filas.forEach(row => {
+                        const texto = row.textContent.toLowerCase();
+                        const coincideBusqueda = texto.includes(term);
+                        const coincideCategoria = !categoria || texto.includes(categoria);
+                        const disponible = !stock ||
+                            (stock === "disponible" && !texto.includes("agotado")) ||
+                            (stock === "agotado" && texto.includes("agotado"));
+                        row.style.display = (coincideBusqueda && coincideCategoria && disponible) ? '' : 'none';
+                    });
+                }
+
+                [search, filtroCategoria, filtroStock].forEach(el => el.addEventListener('input', aplicarFiltros));
+            })();
+
+            // Confirmar eliminación
+            function confirmarEliminacion(formId) {
+                Swal.fire({
+                    title: "¿Eliminar producto?",
+                    text: "Esta acción no se puede deshacer.",
+                    icon: "warning",
+                    showCancelButton: true,
+                    confirmButtonColor: "#2575fc",
+                    cancelButtonColor: "#d33",
+                    confirmButtonText: "Sí, eliminar",
+                    cancelButtonText: "Cancelar"
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        document.getElementById(formId).submit();
+                    }
+                });
+            }
+
+            // Mensaje éxito
+            @if (TempData["MensajeExito"] != null)
+            {
+                <text>
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Operación exitosa',
+                        text: '@TempData["MensajeExito"]',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                </text>
+            }
+
+            // Tour interactivo
+            (() => {
+                const tourKey = 'productos_tour_v1';
+                const pasos = [
+                    { element: '#btnTour', intro: 'Haz clic aquí para iniciar la guía.', position: 'bottom' },
+                    { element: '#busquedaProductos', intro: 'Usa estos filtros para buscar o filtrar productos.', position: 'right' },
+                    { element: '#tablaProductos', intro: 'Aquí se listan todos tus productos.', position: 'top' }
+                ];
+
+                function iniciarTour() {
+                    const intro = introJs();
+                    intro.setOptions({
+                        steps: pasos,
+                        showProgress: true,
+                        nextLabel: 'Siguiente',
+                        prevLabel: 'Atrás',
+                        doneLabel: 'Finalizar'
+                    });
+                    intro.start();
+                }
+
+                document.getElementById('btnTour')?.addEventListener('click', iniciarTour);
+            })();
+        </script>
+    }

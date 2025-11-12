@@ -1,0 +1,54 @@
+@{
+    ViewData["Title"] = "Resultados de reporte";
+
+        var userRol = Context.Session.GetString("UsuarioRol");
+    Layout = userRol == "Administrativo" || userRol == "Secretario" || userRol == "Empleado"
+        ? "~/Views/Shared/_LayoutAdministrativo.cshtml"
+        : "~/Views/Shared/_Layout.cshtml";
+        
+    var tipo = ViewBag.Tipo as string;
+    var data = ViewBag.Data as IEnumerable<object>;
+}
+<div class="container py-4">
+    <h3 class="mb-3">Reporte: @tipo</h3>
+
+    @if (data == null)
+    {
+        <div class="alert alert-info">No hay datos para mostrar.</div>
+    }
+    else
+    {
+        var first = data.FirstOrDefault();
+        if (first == null)
+        {
+            <div class="alert alert-info">No hay datos para mostrar.</div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-sm table-striped">
+                    <thead>
+                        <tr>
+                            @foreach (var p in first.GetType().GetProperties())
+                            {
+                                <th>@p.Name</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in data)
+                        {
+                            <tr>
+                                @foreach (var p in row.GetType().GetProperties())
+                                {
+                                    <td>@(p.GetValue(row) ?? "")</td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    }
+    <a asp-action="Index" class="btn btn-outline-secondary mt-3">Volver</a>
+</div>

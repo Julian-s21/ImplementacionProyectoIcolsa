@@ -1,0 +1,263 @@
+@model List<icolsaProyecto.Models.Usuario>
+
+@{
+    ViewData["Title"] = "Gestión de Usuarios";
+    var userRol = Context.Session.GetString("UsuarioRol");
+    Layout = userRol == "Administrativo" || userRol == "Secretario" || userRol == "Empleado"
+        ? "~/Views/Shared/_LayoutAdministrativo.cshtml"
+        : "~/Views/Shared/_Layout.cshtml";
+
+    int totalUsuarios = Model?.Count ?? 0;
+    var usuarioSesion = Context.Session.GetString("UsuarioNombre");
+}
+
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@500;600&display=swap" rel="stylesheet" />
+
+<!-- Intro.js -->
+<link href="https://unpkg.com/intro.js/minified/introjs.min.css" rel="stylesheet" />
+
+<div class="container py-5" style="font-family: 'Inter', sans-serif;">
+
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb bg-white p-3 rounded shadow-sm">
+            <li class="breadcrumb-item">
+                <a asp-controller="Home" asp-action="Index" class="text-decoration-none text-primary fw-semibold">
+                    <i class="bi bi-house-door me-1"></i> Inicio
+                </a>
+            </li>
+            <li class="breadcrumb-item active fw-semibold text-dark" aria-current="page">Usuarios</li>
+        </ol>
+    </nav>
+
+    <!-- Bienvenida -->
+    <div class="alert alert-light border-start border-4 border-primary shadow-sm rounded-4 mb-4 d-flex justify-content-between align-items-center flex-wrap">
+        <div class="d-flex align-items-center">
+            <i class="bi bi-person-circle text-primary fs-3 me-3"></i>
+            <div>
+                <h5 class="mb-0 fw-semibold" style="font-family:'Poppins', sans-serif;">
+                    Bienvenido, @usuarioSesion
+                </h5>
+                <small class="text-muted">Administra los usuarios del sistema.</small>
+            </div>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+            <button id="btnTour" class="btn btn-outline-primary btn-sm" data-bs-toggle="tooltip" title="Ver guía interactiva">
+                <i class="bi bi-info-circle me-1"></i> Guía
+            </button>
+            <a asp-controller="Usuario" asp-action="Logout" class="btn btn-light btn-sm" title="Cerrar sesión">
+                <i class="bi bi-box-arrow-right me-1"></i> Salir
+            </a>
+        </div>
+    </div>
+
+    <!-- Panel principal -->
+    <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+
+        <!-- Header -->
+        <div class="card-header text-white py-4 px-4 d-flex justify-content-between align-items-center flex-wrap header-gradient"
+             style="background: linear-gradient(90deg, #6a11cb, #2575fc);">
+            <h3 class="mb-0 fw-semibold d-flex align-items-center">
+                <i class="bi bi-people-fill me-2 fs-4"></i> Gestión de Usuarios
+            </h3>
+
+            <a asp-controller="Usuario" asp-action="Create"
+               class="btn btn-light btn-sm fw-semibold shadow-sm px-3 mt-2 mt-md-0"
+               id="btnNuevoUsuario" title="Registrar nuevo usuario" role="button">
+                <i class="bi bi-plus-circle me-1"></i> Nuevo Usuario
+            </a>
+        </div>
+
+        <!-- Body -->
+        <div class="card-body p-4 bg-light">
+
+            <!-- Filtros -->
+            <div class="row mb-4 g-3 align-items-end">
+                <div class="col-lg-4 col-md-6">
+                    <label for="searchInput" class="form-label fw-semibold text-secondary">Buscar usuario</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0">
+                            <i class="bi bi-search text-muted"></i>
+                        </span>
+                        <input type="text" id="searchInput"
+                               class="form-control border-start-0 shadow-sm"
+                               placeholder="Buscar por nombre, correo o rol..." />
+                    </div>
+                </div>
+
+                <div class="col-lg-4 col-md-4">
+                    <label for="filtroRol" class="form-label fw-semibold text-secondary">Filtrar por Rol</label>
+                    <select id="filtroRol" class="form-select shadow-sm">
+                        <option value="">Todos</option>
+                        @foreach (var rol in (Model ?? Enumerable.Empty<icolsaProyecto.Models.Usuario>())
+                            .Select(u => u.Rol_Usuario)
+                            .Where(r => !string.IsNullOrEmpty(r))
+                            .Distinct())
+                        {
+                            <option value="@rol">@rol</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-lg-4 col-md-4 text-end">
+                    <div class="bg-white p-3 rounded shadow-sm border-start border-4 border-primary text-center">
+                        <span class="fw-semibold text-muted me-2">
+                            <i class="bi bi-person-badge me-1"></i> Total usuarios:
+                        </span>
+                        <span class="fw-bold">@totalUsuarios</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabla -->
+            @if (Model != null && Model.Any())
+            {
+                <div class="table-responsive" id="tablaUsuarios">
+                    <table class="table table-hover align-middle bg-white rounded-4 shadow-sm">
+                        <thead class="text-white text-center" style="background: linear-gradient(90deg, #6a11cb, #2575fc);">
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Correo</th>
+                                <th>Rol</th>
+                                <th class="text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var usuario in Model)
+                            {
+                                <tr>
+                                    <td class="fw-semibold">@usuario.Nombre_Usuario</td>
+                                    <td>@usuario.Correo_Usuario</td>
+                                    <td>@usuario.Rol_Usuario</td>
+                                    <td class="text-center">
+                                        <div class="d-flex justify-content-center gap-2">
+                                            <!-- Botón Editar -->
+                                            <form asp-action="LoadEdit" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@usuario.IDUsuario" />
+                                                <button type="submit" class="btn btn-outline-success btn-sm rounded-circle shadow-sm" title="Editar usuario">
+                                                    <i class="bi bi-pencil-square"></i>
+                                                </button>
+                                            </form>
+
+                                            <!-- Botón Eliminar -->
+                                            <form asp-action="DeleteConfirmed" method="post" class="d-inline" id="formEliminar-@usuario.IDUsuario">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@usuario.IDUsuario" />
+                                                <button type="button" onclick="confirmarEliminacion('formEliminar-@usuario.IDUsuario')"
+                                                        class="btn btn-outline-danger btn-sm rounded-circle shadow-sm" title="Eliminar usuario">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-5">
+                    <i class="bi bi-info-circle text-primary fs-3"></i>
+                    <p class="mt-2 mb-0 text-muted fw-semibold">No hay usuarios registrados.</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://unpkg.com/intro.js/minified/intro.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        // Tooltips
+        document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
+
+        // Búsqueda con debounce
+        (() => {
+            const input = document.getElementById('searchInput');
+            if (!input) return;
+            let timer;
+            input.addEventListener('input', function () {
+                clearTimeout(timer);
+                timer = setTimeout(() => {
+                    const term = this.value.toLowerCase();
+                    document.querySelectorAll('#tablaUsuarios tbody tr').forEach(row => {
+                        row.style.display = row.textContent.toLowerCase().includes(term) ? '' : 'none';
+                    });
+                }, 250);
+            });
+        })();
+
+        // Filtro por rol
+        (() => {
+            const filtroRol = document.getElementById('filtroRol');
+            const filas = document.querySelectorAll('#tablaUsuarios tbody tr');
+            filtroRol.addEventListener('input', function () {
+                const rol = this.value.toLowerCase();
+                filas.forEach(row => {
+                    const texto = row.textContent.toLowerCase();
+                    row.style.display = !rol || texto.includes(rol) ? '' : 'none';
+                });
+            });
+        })();
+
+        // Confirmar eliminación
+        function confirmarEliminacion(formId) {
+            Swal.fire({
+                title: "¿Eliminar usuario?",
+                text: "Esta acción no se puede deshacer.",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#2575fc",
+                cancelButtonColor: "#d33",
+                confirmButtonText: "Sí, eliminar",
+                cancelButtonText: "Cancelar"
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById(formId).submit();
+                }
+            });
+        }
+
+        // Mensaje de éxito
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <text>
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Operación exitosa',
+                    text: '@TempData["SuccessMessage"]',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            </text>
+        }
+
+        // Tour Intro.js
+        (() => {
+            const pasos = [
+                { element: '#btnNuevoUsuario', intro: 'Crea un nuevo usuario.', position: 'bottom' },
+                { element: '#searchInput', intro: 'Busca usuarios por nombre o correo.', position: 'right' },
+                { element: '#tablaUsuarios', intro: 'Aquí puedes ver, editar o eliminar usuarios.', position: 'top' }
+            ];
+
+            document.getElementById('btnTour')?.addEventListener('click', () => {
+                const intro = introJs();
+                intro.setOptions({
+                    steps: pasos,
+                    showProgress: true,
+                    nextLabel: 'Siguiente',
+                    prevLabel: 'Atrás',
+                    doneLabel: 'Finalizar'
+                });
+                intro.start();
+            });
+        })();
+    </script>
+}

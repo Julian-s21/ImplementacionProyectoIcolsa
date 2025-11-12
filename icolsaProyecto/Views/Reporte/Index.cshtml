@@ -1,0 +1,41 @@
+@{
+    ViewData["Title"] = "Reportes";
+        var userRol = Context.Session.GetString("UsuarioRol");
+    Layout = userRol == "Administrativo" || userRol == "Secretario" || userRol == "Empleado"
+        ? "~/Views/Shared/_LayoutAdministrativo.cshtml"
+        : "~/Views/Shared/_Layout.cshtml";
+    var tipos = (IEnumerable<string>)ViewBag.Tipos;
+}
+<div class="container py-4">
+    <h3 class="mb-3">Seleccione tipo de reporte</h3>
+
+    <form asp-action="Generate" method="post" class="row g-3">
+        @Html.AntiForgeryToken()
+        <div class="col-md-4">
+            <label class="form-label">Tipo de reporte</label>
+            <select name="tipo" class="form-select" required>
+                @foreach (var t in tipos) {
+                    <option value="@t">@t</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Desde</label>
+            <input type="date" name="desde" class="form-control" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Hasta</label>
+            <input type="date" name="hasta" class="form-control" />
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary me-2">Generar</button>
+            <button type="submit" name="export" value="pdf" class="btn btn-outline-danger">
+                Exportar PDF
+            </button>
+        </div>
+    </form>
+
+    <div class="mt-4">
+        <small class="text-muted">Filtros simples: ajustar en el controlador para más opciones.</small>
+    </div>
+</div>

@@ -1,0 +1,327 @@
+@model List<icolsaProyecto.Models.Cliente>
+
+@{
+    ViewData["Title"] = "Gestión de Clientes";
+    var userRol = Context.Session.GetString("UsuarioRol");
+    Layout = userRol == "Administrativo" || userRol == "Secretario" || userRol == "Empleado"
+        ? "~/Views/Shared/_LayoutAdministrativo.cshtml"
+        : "~/Views/Shared/_Layout.cshtml";
+
+    var clientes = Model ?? Enumerable.Empty<icolsaProyecto.Models.Cliente>();
+    int totalClientes = clientes.Count();
+}
+
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@500;600&display=swap" rel="stylesheet" />
+
+<!-- Intro.js -->
+<link href="https://unpkg.com/intro.js/minified/introjs.min.css" rel="stylesheet" />
+
+<div class="container py-5" style="font-family: 'Inter', sans-serif;">
+
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb bg-white p-3 rounded shadow-sm">
+            <li class="breadcrumb-item">
+                <a asp-controller="Home" asp-action="Index" class="text-decoration-none text-primary fw-semibold">
+                    <i class="bi bi-house-door me-1"></i> Inicio
+                </a>
+            </li>
+            <li class="breadcrumb-item active fw-semibold text-dark" aria-current="page">Clientes</li>
+        </ol>
+    </nav>
+
+    <!-- Encabezado -->
+    <div class="alert alert-light border-start border-4 border-primary shadow-sm rounded-4 mb-4 d-flex justify-content-between align-items-center flex-wrap">
+        <div class="d-flex align-items-center">
+            <i class="bi bi-people-fill text-primary fs-3 me-3"></i>
+            <div>
+                <h5 class="mb-0 fw-semibold" style="font-family:'Poppins', sans-serif;">
+                    Gestión de Clientes
+                </h5>
+                <small class="text-muted">Administra la información de tus clientes fácilmente.</small>
+            </div>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+            <button id="btnTour" class="btn btn-outline-primary btn-sm" data-bs-toggle="tooltip" title="Ver guía interactiva">
+                <i class="bi bi-info-circle me-1"></i> Guía
+            </button>
+             <a asp-controller="Cliente" asp-action="Create"
+               class="btn btn-light btn-sm fw-semibold shadow-sm px-3 mt-2 mt-md-0"
+               id="btnNuevoCliente" title="Registrar un nuevo cliente" role="button">
+                <i class="bi bi-plus-circle me-1"></i> Nuevo Cliente
+            </a>
+        </div>
+    </div>
+
+    <!-- Panel principal -->
+    <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+
+        <!-- Header -->
+        <div class="card-header text-white py-4 px-4 d-flex justify-content-between align-items-center flex-wrap header-gradient"
+             style="background: linear-gradient(90deg, #6a11cb, #2575fc);">
+            <h3 class="mb-0 fw-semibold d-flex align-items-center">
+                <i class="bi bi-person-badge me-2 fs-4"></i> Lista de Clientes
+            </h3>
+        </div>
+
+        <!-- Body -->
+        <div class="card-body p-4 bg-light">
+
+            <!-- Filtros (busqueda + filtros adicionales) -->
+            <div class="row mb-4 g-3 align-items-end" id="busquedaClientes">
+                <div class="col-lg-6 col-md-6">
+                    <label for="searchInput" class="form-label fw-semibold text-secondary">Buscar cliente</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                        <input type="text" id="searchInput" class="form-control border-start-0 shadow-sm" placeholder="Buscar por nombre, correo, teléfono o NIT..." aria-label="Buscar cliente" />
+                    </div>
+                </div>
+
+                <div class="col-lg-3 col-md-3">
+                    <label for="filtroCorreo" class="form-label fw-semibold text-secondary">Filtro correo</label>
+                    <select id="filtroCorreo" class="form-select shadow-sm" aria-label="Filtrar por correo">
+                        <option value="">Todos</option>
+                        <option value="con">Con correo</option>
+                        <option value="sin">Sin correo</option>
+                    </select>
+                </div>
+
+                <div class="col-lg-3 col-md-3">
+                    <label for="filtroNIT" class="form-label fw-semibold text-secondary">Filtro NIT</label>
+                    <select id="filtroNIT" class="form-select shadow-sm" aria-label="Filtrar por NIT">
+                        <option value="">Todos</option>
+                        <option value="con">Con NIT</option>
+                        <option value="sin">Sin NIT</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Estadística simple -->
+            <div class="row justify-content-start mb-4">
+                <div class="col-lg-3 col-md-4">
+                    <div class="bg-white p-3 rounded shadow-sm border-start border-4 border-primary text-center">
+                        <span class="fw-semibold text-muted me-2">
+                            <i class="bi bi-person-lines-fill me-1"></i> Total de clientes:
+                        </span>
+                        <span class="fw-bold">@totalClientes</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabla -->
+            @if (clientes != null && clientes.Any())
+            {
+                <div class="table-responsive" id="tablaClientes">
+                    <table class="table table-hover align-middle bg-white rounded-4 shadow-sm">
+                        <thead class="text-white text-center" style="background: linear-gradient(90deg, #6a11cb, #2575fc);">
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Apellido</th>
+                                <th>Dirección</th>
+                                <th>Teléfono</th>
+                                <th>Correo</th>
+                                <th>NIT</th>
+                                <th class="text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var cliente in clientes)
+                            {
+                                <tr>
+                                    <td>@cliente.Nombre_Cliente</td>
+                                    <td>@cliente.Apellido_Cliente</td>
+                                    <td>@cliente.Direccion_Cliente</td>
+                                    <td>@cliente.Telefono_Cliente</td>
+                                    <td>@cliente.Correo_Cliente</td>
+                                    <td>@cliente.NIT_Cliente</td>
+                                    <td class="text-center">
+                                        <div class="d-flex justify-content-center gap-2">
+                                            <!-- Botón Editar -->
+                                            <form asp-action="LoadEdit" asp-controller="Cliente" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@cliente.IDCliente" />
+                                                <button type="submit"
+                                                        class="btn btn-outline-success btn-sm rounded-circle shadow-sm"
+                                                        data-bs-toggle="tooltip" title="Editar cliente" aria-label="Editar cliente">
+                                                    <i class="bi bi-pencil-square"></i>
+                                                </button>
+                                            </form>
+
+                                            <!-- Botón Eliminar: ahora usa submit + onsubmit para accesibilidad -->
+                                            <form asp-action="DeleteConfirmed" asp-controller="Cliente" method="post"
+                                                  class="d-inline" id="formEliminar-@cliente.IDCliente"
+                                                  onsubmit="return confirmarEliminacion(event, 'formEliminar-@cliente.IDCliente')">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@cliente.IDCliente" />
+                                                <button type="submit"
+                                                        class="btn btn-outline-danger btn-sm rounded-circle shadow-sm"
+                                                        data-bs-toggle="tooltip" title="Eliminar cliente" aria-label="Eliminar cliente">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-5">
+                    <i class="bi bi-info-circle text-primary fs-3"></i>
+                    <p class="mt-2 mb-0 text-muted fw-semibold">No hay clientes registrados.</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://unpkg.com/intro.js/minified/intro.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        // Inicializar tooltips
+        document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
+
+        // Normalización: quitar diacríticos y pasar a lower-case
+        function normalizeText(s) {
+            if (!s) return '';
+            try {
+                return s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
+            } catch (e) {
+                // Fallback si normalize no está soportado
+                return s.toString().toLowerCase();
+            }
+        }
+
+        // Filtros dinámicos con debounce
+        (function () {
+            const search = document.getElementById('searchInput');
+            const filtroCorreo = document.getElementById('filtroCorreo');
+            const filtroNIT = document.getElementById('filtroNIT');
+            const filas = document.querySelectorAll('#tablaClientes tbody tr');
+
+            if (!filas.length) return;
+
+            function aplicarFiltros() {
+                const term = normalizeText(search?.value || '');
+                const correoFilter = (filtroCorreo?.value || '').toLowerCase();
+                const nitFilter = (filtroNIT?.value || '').toLowerCase();
+
+                filas.forEach(row => {
+                    const texto = normalizeText(row.textContent);
+                    const coincideBusqueda = !term || texto.includes(term);
+
+                    // Evaluar correo
+                    let correoOk = true;
+                    if (correoFilter === 'con') {
+                        correoOk = !normalizeText(row.cells[4].textContent).trim() === false && normalizeText(row.cells[4].textContent).trim().length > 0;
+                        // simpler check: exists non-empty correo cell
+                        correoOk = normalizeText(row.cells[4].textContent).trim().length > 0;
+                    } else if (correoFilter === 'sin') {
+                        correoOk = normalizeText(row.cells[4].textContent).trim().length === 0;
+                    }
+
+                    // Evaluar NIT
+                    let nitOk = true;
+                    if (nitFilter === 'con') {
+                        nitOk = normalizeText(row.cells[5].textContent).trim().length > 0;
+                    } else if (nitFilter === 'sin') {
+                        nitOk = normalizeText(row.cells[5].textContent).trim().length === 0;
+                    }
+
+                    row.style.display = (coincideBusqueda && correoOk && nitOk) ? '' : 'none';
+                });
+            }
+
+            function debounce(fn, delay) { let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn.apply(this, args), delay); }; }
+
+            const handler = debounce(aplicarFiltros, 200);
+
+            [search, filtroCorreo, filtroNIT].forEach(el => {
+                if (el) el.addEventListener('input', handler);
+            });
+        })();
+
+        // Confirmar eliminación (usado en onsubmit de formularios)
+        function confirmarEliminacion(event, formId) {
+            event.preventDefault();
+            Swal.fire({
+                title: "¿Eliminar cliente?",
+                text: "Esta acción no se puede deshacer.",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#2575fc",
+                cancelButtonColor: "#d33",
+                confirmButtonText: "Sí, eliminar",
+                cancelButtonText: "Cancelar"
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById(formId).submit();
+                }
+            });
+            return false;
+        }
+
+        // Mostrar mensaje de éxito (TempData) usando Json encode para seguridad
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <text>
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Operación exitosa',
+                    text: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(TempData["SuccessMessage"])),
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            </text>
+        }
+
+        // Tour interactivo
+        (function () {
+            const tourKey = 'clientes_tour_v1';
+            const pasos = [
+                {
+                    element: '#btnNuevoCliente',
+                    intro: 'Haz clic aquí para agregar un nuevo cliente.',
+                    position: 'bottom'
+                },
+                {
+                    element: '#searchInput',
+                    intro: 'Usa esta barra para buscar clientes por nombre, correo, teléfono o NIT.',
+                    position: 'right'
+                },
+                {
+                    element: '#tablaClientes',
+                    intro: 'Aquí se muestran tus clientes con opciones para editar o eliminar.',
+                    position: 'top'
+                }
+            ];
+
+            function iniciarTour() {
+                const intro = introJs();
+                intro.setOptions({
+                    steps: pasos,
+                    showProgress: true,
+                    nextLabel: 'Siguiente',
+                    prevLabel: 'Atrás',
+                    doneLabel: 'Finalizar'
+                });
+
+                intro.oncomplete(() => localStorage.setItem(tourKey, 'done'));
+                intro.onexit(() => localStorage.setItem(tourKey, 'done'));
+                intro.start();
+            }
+
+            document.getElementById('btnTour')?.addEventListener('click', iniciarTour);
+            if (!localStorage.getItem(tourKey)) {
+                setTimeout(iniciarTour, 600);
+            }
+        })();
+    </script>
+}

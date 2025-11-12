@@ -1,0 +1,189 @@
+@model icolsaProyecto.Models.Usuario
+
+@{
+    ViewData["Title"] = "Registrar Usuario";
+
+    var userRol = Context.Session.GetString("UsuarioRol");
+    Layout = userRol == "Administrativo" || userRol == "Secretario" || userRol == "Empleado"
+        ? "~/Views/Shared/_LayoutAdministrativo.cshtml"
+        : "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container py-5">
+    <!-- ENCABEZADO -->
+    <div class="bg-white/80 backdrop-blur-md shadow-lg rounded-4 border border-gray-100 p-4 mb-4">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h2 class="fw-bold mb-1 text-gradient"
+                    style="background: linear-gradient(90deg, #6a11cb, #2575fc);
+                           -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                    Registrar Nuevo Usuario
+                </h2>
+                <p class="text-muted mb-0">Completa todos los campos para crear una nueva cuenta de usuario.</p>
+            </div>
+            <a asp-action="Index" class="btn btn-outline-primary rounded-pill fw-semibold shadow-sm">
+                <i class="bi bi-arrow-left me-1"></i> Volver
+            </a>
+        </div>
+    </div>
+
+    <!-- FORMULARIO -->
+    <div class="bg-white p-5 shadow-lg rounded-4 border-0">
+        <form asp-action="Create" method="post" autocomplete="off" id="formUsuario" novalidate>
+            @Html.AntiForgeryToken()
+
+            <div class="row g-4">
+                <!-- Nombre -->
+                <div class="col-md-6">
+                    <label asp-for="Nombre_Usuario" class="form-label fw-semibold">Nombre del Usuario</label>
+                    <input asp-for="Nombre_Usuario" class="form-control border-0 shadow-sm rounded-3 focus-ring"
+                           placeholder="Ej. Juan Pérez" maxlength="80" />
+                    <span asp-validation-for="Nombre_Usuario" class="invalid-feedback d-block small"></span>
+                </div>
+
+                <!-- Correo -->
+                <div class="col-md-6">
+                    <label asp-for="Correo_Usuario" class="form-label fw-semibold">Correo Electrónico</label>
+                    <input asp-for="Correo_Usuario" type="email"
+                           class="form-control border-0 shadow-sm rounded-3 focus-ring"
+                           placeholder="usuario@ejemplo.com" maxlength="120" />
+                    <span asp-validation-for="Correo_Usuario" class="invalid-feedback d-block small"></span>
+                </div>
+
+                <!-- Rol -->
+                <div class="col-md-6">
+                    <label asp-for="Rol_Usuario" class="form-label fw-semibold">Rol del Usuario</label>
+                    <select asp-for="Rol_Usuario" class="form-select border-0 shadow-sm rounded-3 focus-ring">
+                        <option value="">Seleccione un rol</option>
+                        <option value="Administrativo">Administrativo</option>
+                        <option value="Empleado">Empleado</option>
+                    </select>
+                    <span asp-validation-for="Rol_Usuario" class="invalid-feedback d-block small"></span>
+                </div>
+
+                <!-- Contraseña -->
+                <div class="col-md-6">
+                    <label asp-for="Contrasena_Usuario" class="form-label fw-semibold">Contraseña</label>
+                    <input asp-for="Contrasena_Usuario" type="password"
+                           class="form-control border-0 shadow-sm rounded-3 focus-ring"
+                           placeholder="********" maxlength="50" />
+                    <span asp-validation-for="Contrasena_Usuario" class="invalid-feedback d-block small"></span>
+                </div>
+            </div>
+
+            <!-- Resumen de errores -->
+            <div id="errorSummary" class="alert alert-danger mt-4 d-none rounded-4 shadow-sm">
+                <h6 class="fw-bold"><i class="bi bi-exclamation-triangle me-2"></i>Errores encontrados:</h6>
+                <ul class="mb-0"></ul>
+            </div>
+
+            <!-- BOTONES -->
+            <div class="text-center mt-5">
+                <button type="submit"
+                        class="btn btn-gradient px-5 py-2 rounded-pill text-white shadow-sm fw-semibold ripple"
+                        style="background: linear-gradient(90deg, #6a11cb, #2575fc);">
+                    <i class="bi bi-check-circle me-2"></i>Guardar Usuario
+                </button>
+                <button type="button" id="btnCancelar"
+                        class="btn btn-outline-secondary px-5 py-2 rounded-pill ms-2 shadow-sm ripple"
+                        onclick="window.location.href='@Url.Action("Index")'">
+                    <i class="bi bi-x-circle me-2"></i>Cancelar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+@section Scripts {
+<partial name="_ValidationScriptsPartial" />
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const form = document.getElementById("formUsuario");
+    const errorSummary = document.getElementById("errorSummary");
+
+    // ============================
+    // ✅ Función estándar: showError
+    // ============================
+    function showError(element, message) {
+        element.classList.remove("is-valid");
+        element.classList.add("is-invalid");
+
+        let feedback = element.parentElement.querySelector(".invalid-feedback");
+        if (!feedback) {
+            feedback = document.createElement("div");
+            feedback.classList.add("invalid-feedback", "d-block", "small");
+            element.parentElement.appendChild(feedback);
+        }
+        feedback.textContent = message;
+    }
+
+    // ============================
+    // ✅ Función estándar: clearError
+    // ============================
+    function clearError(element) {
+        element.classList.remove("is-invalid");
+        element.classList.add("is-valid");
+
+        const fb = element.parentElement.querySelector(".invalid-feedback");
+        if (fb) fb.textContent = "";
+    }
+
+    // =========================================
+    // ✅ VALIDACIONES — MISMO ESTILO QUE PRODUCTO
+    // =========================================
+    form.addEventListener("submit", function (event) {
+
+        let errores = [];
+
+        const nombre = form.querySelector("[name='Nombre_Usuario']");
+        const correo = form.querySelector("[name='Correo_Usuario']");
+        const rol = form.querySelector("[name='Rol_Usuario']");
+        const contrasena = form.querySelector("[name='Contrasena_Usuario']");
+
+        // Nombre
+        if (!nombre.value.trim()) {
+            errores.push("Debe ingresar el nombre del usuario.");
+            showError(nombre, "Debe ingresar el nombre del usuario.");
+        } else clearError(nombre);
+
+        // Correo
+        if (!correo.value.trim()) {
+            errores.push("Debe ingresar un correo electrónico válido.");
+            showError(correo, "Debe ingresar un correo electrónico válido.");
+        } else clearError(correo);
+
+        // Rol
+        if (!rol.value) {
+            errores.push("Debe seleccionar un rol.");
+            showError(rol, "Debe seleccionar un rol.");
+        } else clearError(rol);
+
+        // Contraseña
+        if (!contrasena.value.trim() || contrasena.value.length < 5) {
+            errores.push("La contraseña debe tener al menos 5 caracteres.");
+            showError(contrasena, "La contraseña debe tener al menos 5 caracteres.");
+        } else clearError(contrasena);
+
+        // ============================
+        // ✅ Mostrar errores arriba
+        // ============================
+        if (errores.length > 0) {
+            if (errorSummary) {
+                errorSummary.classList.remove("d-none");
+                errorSummary.innerHTML = `
+                    <strong>Se encontraron los siguientes errores:</strong>
+                    <ul class="mb-0 mt-2">
+                        ${errores.map(e => `<li>${e}</li>`).join("")}
+                    </ul>`;
+            }
+            window.scrollTo({ top: 0, behavior: "smooth" });
+            event.preventDefault();
+            return false;
+        }
+
+        if (errorSummary) errorSummary.classList.add("d-none");
+    });
+});
+</script>
+}

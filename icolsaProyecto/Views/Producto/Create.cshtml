@@ -1,0 +1,213 @@
+@model icolsaProyecto.Models.Producto
+
+@{
+    ViewData["Title"] = "Registrar Producto";
+    var userRol = Context.Session.GetString("UsuarioRol");
+    Layout = userRol == "Administrativo" || userRol == "Secretario" || userRol == "Empleado"
+        ? "~/Views/Shared/_LayoutAdministrativo.cshtml"
+        : "~/Views/Shared/_Layout.cshtml";
+
+    // Seguridad extra: asegurar listas no nulas
+    var categorias = (ViewBag.Categorias as IEnumerable<icolsaProyecto.Models.Categoria>)?.ToList() 
+                     ?? new List<icolsaProyecto.Models.Categoria>();
+}
+
+<div class="container py-5">
+    <!-- ENCABEZADO -->
+    <div class="bg-white/80 backdrop-blur-md shadow-lg rounded-4 border border-gray-100 p-4 mb-4">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h2 class="fw-bold mb-1 text-gradient"
+                    style="background: linear-gradient(90deg, #6a11cb, #2575fc);
+                           -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                    Registrar Nuevo Producto
+                </h2>
+                <p class="text-muted mb-0">Completa todos los campos para agregar un producto al inventario.</p>
+            </div>
+            <a asp-action="Index" class="btn btn-outline-primary rounded-pill fw-semibold shadow-sm">
+                <i class="bi bi-arrow-left me-1"></i> Volver
+            </a>
+        </div>
+    </div>
+
+    <!-- FORMULARIO -->
+    <div class="bg-white p-5 shadow-lg rounded-4 border-0">
+        <form asp-action="Create" method="post" enctype="multipart/form-data" autocomplete="off" id="formProducto" novalidate>
+            @Html.AntiForgeryToken()
+
+            <div class="row g-4">
+
+                <!-- Nombre del Producto -->
+                <div class="col-md-6">
+                    <label asp-for="Nombre_Producto" class="form-label fw-semibold">Nombre del Producto</label>
+                    <input asp-for="Nombre_Producto"
+                           class="form-control border-0 shadow-sm rounded-3 focus-ring"
+                           placeholder="Ej. Globo metálico azul"
+                           maxlength="80" />
+                    <span class="invalid-feedback d-block small"></span>
+                </div>
+
+                <!-- Código del Producto -->
+                <div class="col-md-6">
+                    <label asp-for="Codigo_Producto" class="form-label fw-semibold">Código del Producto</label>
+                    <input asp-for="Codigo_Producto"
+                           class="form-control border-0 shadow-sm rounded-3 focus-ring"
+                           placeholder="Ej. GLB-001"
+                           maxlength="20" />
+                    <span class="invalid-feedback d-block small"></span>
+                </div>
+
+                <!-- Precio Unitario -->
+                <div class="col-md-6">
+                    <label asp-for="PrecioUnitario_Producto" class="form-label fw-semibold">Precio Unitario (Q)</label>
+                    <input asp-for="PrecioUnitario_Producto"
+                           type="number"
+                           step="0.01"
+                           min="0"
+                           class="form-control border-0 shadow-sm rounded-3 focus-ring"
+                           placeholder="Ej. 25.50" />
+                    <span class="invalid-feedback d-block small"></span>
+                </div>
+
+                <!-- Cantidad en Stock -->
+                <div class="col-md-6">
+                    <label asp-for="Stock_Producto" class="form-label fw-semibold">Cantidad en Stock</label>
+                    <input asp-for="Stock_Producto"
+                           type="number"
+                           min="0"
+                           step="1"
+                           class="form-control border-0 shadow-sm rounded-3 focus-ring"
+                           placeholder="Ej. 50" />
+                    <span class="invalid-feedback d-block small"></span>
+                </div>
+
+                <!-- Selección de Categoría -->
+                <div class="col-md-6">
+                    <label asp-for="IDCategoria" class="form-label fw-semibold">Categoría</label>
+                    <select asp-for="IDCategoria"
+                        asp-items="@(new SelectList(ViewBag.Categorias, nameof(Categoria.IDCategoria), nameof(Categoria.Nombre_Categoria)))"
+                        class="form-select border-0 shadow-sm rounded-3 focus-ring">
+                        <option value="">Seleccione una categoría</option>
+                    </select>
+                    <span class="invalid-feedback d-block small"></span>
+                </div>
+
+                <!-- Imagen -->
+                <div class="col-md-6">
+                    <label asp-for="ImagenUrl" class="form-label fw-semibold">Imagen del Producto</label>
+                    <input type="file" name="imagenFile" id="imagenFile"
+                           class="form-control border-0 shadow-sm rounded-3 focus-ring" accept="image/*" />
+                    <span class="invalid-feedback d-block small"></span>
+                </div>
+
+                <!-- Previsualización de imagen -->
+                <div class="col-12 text-center">
+                    <img id="previewImg" src="#" alt="Vista previa" class="img-fluid rounded shadow-sm d-none" 
+                         style="max-height: 200px;" />
+                </div>
+            </div>
+
+            <!-- Resumen de errores -->
+            <div id="errorSummary" class="alert alert-danger mt-4 d-none rounded-4 shadow-sm">
+                <h6 class="fw-bold"><i class="bi bi-exclamation-triangle me-2"></i>Errores encontrados:</h6>
+                <ul class="mb-0"></ul>
+            </div>
+
+            <!-- BOTONES -->
+            <div class="text-center mt-5">
+                <button type="submit"
+                        class="btn btn-gradient px-5 py-2 rounded-pill text-white shadow-sm fw-semibold ripple"
+                        style="background: linear-gradient(90deg, #6a11cb, #2575fc);">
+                    <i class="bi bi-check-circle me-2"></i>Guardar Producto
+                </button>
+                <button type="button" id="btnCancelar"
+                        class="btn btn-outline-secondary px-5 py-2 rounded-pill ms-2 shadow-sm ripple"
+                        onclick="window.location.href='@Url.Action("Index")'">
+                    <i class="bi bi-x-circle me-2"></i>Cancelar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+<partial name="_ValidationScriptsPartial" />
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const form = document.getElementById("formProducto");
+    const errorSummary = document.getElementById("errorSummary");
+    const previewImg = document.getElementById("previewImg");
+    const imagenFile = document.getElementById("imagenFile");
+
+    // Previsualización de imagen
+    imagenFile.addEventListener("change", () => {
+        const file = imagenFile.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = e => {
+                previewImg.src = e.target.result;
+                previewImg.classList.remove("d-none");
+            };
+            reader.readAsDataURL(file);
+        } else previewImg.classList.add("d-none");
+    });
+
+    // Validaciones
+    function showError(element, message) {
+        element.classList.remove("is-valid");
+        element.classList.add("is-invalid");
+        let feedback = element.parentElement.querySelector(".invalid-feedback");
+        if (!feedback) {
+            feedback = document.createElement("div");
+            feedback.classList.add("invalid-feedback", "d-block", "small");
+            element.parentElement.appendChild(feedback);
+        }
+        feedback.textContent = message;
+    }
+
+    function clearError(element) {
+        element.classList.remove("is-invalid");
+        element.classList.add("is-valid");
+        const fb = element.parentElement.querySelector(".invalid-feedback");
+        if (fb) fb.textContent = "";
+    }
+    
+
+    form.addEventListener("submit", function (event) {
+        let errores = [];
+
+        const nombre = form.querySelector("[name='Nombre_Producto']");
+        const codigo = form.querySelector("[name='Codigo_Producto']");
+        const precio = form.querySelector("[name='PrecioUnitario_Producto']");
+        const categoria = form.querySelector("[name='IDCategoria']");
+        const stock = form.querySelector("[name='Stock_Producto']");
+
+        if (!nombre.value.trim()) { errores.push("Debe ingresar el nombre del producto."); showError(nombre, "Debe ingresar el nombre del producto."); } else clearError(nombre);
+        if (!codigo.value.trim()) { errores.push("Debe ingresar el código del producto."); showError(codigo, "Debe ingresar el código del producto."); } else clearError(codigo);
+        const valor = parseFloat(precio.value); 
+        if (isNaN(valor) || valor <= 0) { errores.push("Ingrese un precio unitario válido mayor a 0."); showError(precio, "Ingrese un precio unitario válido mayor a 0."); } else clearError(precio);
+        if (!categoria.value) { errores.push("Debe seleccionar una categoría."); showError(categoria, "Debe seleccionar una categoría."); } else clearError(categoria);
+        
+        const cantidad = parseInt(stock.value);
+        if (isNaN(cantidad) || cantidad < 0) {
+            errores.push("Debe ingresar una cantidad válida en stock (0 o mayor).");
+            showError(stock, "Debe ingresar una cantidad válida en stock (0 o mayor).");
+        } else clearError(stock);
+
+        if (errores.length > 0) {
+            if (errorSummary) {
+                errorSummary.classList.remove("d-none");
+                errorSummary.innerHTML = `<strong>Se encontraron los siguientes errores:</strong>
+                <ul class="mb-0 mt-2">${errores.map(e => `<li>${e}</li>`).join("")}</ul>`;
+            }
+            window.scrollTo({ top: 0, behavior: "smooth" });
+            event.preventDefault();
+            return false;
+        }
+
+        if (errorSummary) errorSummary.classList.add("d-none");
+    });
+});
+</script>
+}

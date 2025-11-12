@@ -1,0 +1,177 @@
+@model icolsaProyecto.Models.HistorialInventarioSaldo
+
+@{
+    ViewData["Title"] = "Registrar Movimiento de Inventario";
+
+    var userRol = Context.Session.GetString("UsuarioRol");
+    Layout = userRol == "Administrativo" || userRol == "Secretario" || userRol == "Empleado"
+        ? "~/Views/Shared/_LayoutAdministrativo.cshtml"
+        : "~/Views/Shared/_Layout.cshtml";
+
+    var productos = (ViewBag.Productos as IEnumerable<icolsaProyecto.Models.Producto>)?.ToList()
+                    ?? new List<icolsaProyecto.Models.Producto>();
+}
+
+<div class="container py-5">
+    <!-- ENCABEZADO -->
+    <div class="bg-white/80 backdrop-blur-md shadow-lg rounded-4 border border-gray-100 p-4 mb-4">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h2 class="fw-bold mb-1"
+                    style="background: linear-gradient(90deg, #6a11cb, #2575fc);
+                           -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                    Registrar Movimiento de Inventario
+                </h2>
+                <p class="text-muted mb-0">Registra entradas o salidas de inventario.</p>
+            </div>
+            <a asp-action="Index" class="btn btn-outline-primary rounded-pill fw-semibold shadow-sm">
+                <i class="bi bi-arrow-left me-1"></i> Volver
+            </a>
+        </div>
+    </div>
+
+    <!-- FORMULARIO -->
+    <div class="bg-white p-5 shadow-lg rounded-4 border-0">
+        <form asp-action="Create" method="post" autocomplete="off" id="formMovimiento" novalidate>
+            @Html.AntiForgeryToken()
+
+            <div class="row g-4">
+
+                <!-- TipoMovimiento -->
+                <div class="col-md-6">
+                    <label asp-for="TipoMovimiento" class="form-label fw-semibold">Tipo de Movimiento</label>
+                    <select asp-for="TipoMovimiento" class="form-select border-0 shadow-sm rounded-3">
+                        <option value="">Seleccione...</option>
+                        <option value="Entrada">Entrada</option>
+                        <option value="Salida">Salida</option>
+                    </select>
+                    <span class="invalid-feedback d-block small"></span>
+                </div>
+
+                <!-- Producto (IDProducto) -->
+                <div class="col-md-6">
+                    <label asp-for="IDProducto" class="form-label fw-semibold">Producto</label>
+                    <select asp-for="IDProducto"
+                            asp-items="@(new SelectList(productos, nameof(Producto.IDProducto), nameof(Producto.Nombre_Producto)))"
+                            class="form-select border-0 shadow-sm rounded-3">
+                        <option value="">Seleccione un producto</option>
+                    </select>
+                    <span class="invalid-feedback d-block small"></span>
+                </div>
+
+                <!-- Saldo_Actual -->
+                <div class="col-md-6">
+                    <label asp-for="Saldo_Actual" class="form-label fw-semibold">Saldo Actual</label>
+                    <input asp-for="Saldo_Actual" type="number" min="0" step="1"
+                           class="form-control border-0 shadow-sm rounded-3" placeholder="Ej. 50" />
+                    <span class="invalid-feedback d-block small"></span>
+                </div>
+
+                <!-- Fecha_Actualizacion -->
+                <div class="col-md-6">
+                    <label asp-for="Fecha_Actualizacion" class="form-label fw-semibold">Fecha de Actualización</label>
+                    <input asp-for="Fecha_Actualizacion" type="datetime-local"
+                           class="form-control border-0 shadow-sm rounded-3" />
+                    <small class="text-muted">Si lo dejas vacío el controlador guardará la fecha actual.</small>
+                    <span class="invalid-feedback d-block small"></span>
+                </div>
+            </div>
+
+            <!-- Resumen de errores -->
+            <div id="errorSummary" class="alert alert-danger mt-4 d-none rounded-4 shadow-sm">
+                <h6 class="fw-bold"><i class="bi bi-exclamation-triangle me-2"></i>Errores encontrados:</h6>
+                <ul class="mb-0"></ul>
+            </div>
+
+            <!-- BOTONES -->
+            <div class="text-center mt-5">
+                <button type="submit"
+                        class="btn px-5 py-2 rounded-pill text-white shadow-sm fw-semibold"
+                        style="background: linear-gradient(90deg, #6a11cb, #2575fc);">
+                    <i class="bi bi-check-circle me-2"></i>Guardar Movimiento
+                </button>
+                <button type="button" id="btnCancelar"
+                        class="btn btn-outline-secondary px-5 py-2 rounded-pill ms-2 shadow-sm"
+                        onclick="window.location.href='@Url.Action("Index")'">
+                    <i class="bi bi-x-circle me-2"></i>Cancelar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const form = document.getElementById("formMovimiento");
+        const errorSummary = document.getElementById("errorSummary");
+
+        const tipo = form.querySelector("[name='TipoMovimiento']");
+        const producto = form.querySelector("[name='IDProducto']");
+        const saldo = form.querySelector("[name='Saldo_Actual']");
+        const fecha = form.querySelector("[name='Fecha_Actualizacion']");
+
+        function showError(element, message) {
+            element.classList.add("is-invalid");
+            let fb = element.parentElement.querySelector(".invalid-feedback");
+            if (!fb) {
+                fb = document.createElement("div");
+                fb.classList.add("invalid-feedback", "d-block", "small");
+                element.parentElement.appendChild(fb);
+            }
+            fb.textContent = message;
+        }
+
+        function clearError(element) {
+            element.classList.remove("is-invalid");
+            let fb = element.parentElement.querySelector(".invalid-feedback");
+            if (fb) fb.textContent = "";
+        }
+
+        form.addEventListener("submit", function (e) {
+            let errores = [];
+
+            // Validaciones básicas (usando los nombres exactos del modelo)
+            if (!tipo.value) { errores.push("Seleccione el tipo de movimiento."); showError(tipo, "Seleccione el tipo de movimiento."); } else clearError(tipo);
+            if (!producto.value) { errores.push("Seleccione un producto."); showError(producto, "Seleccione un producto."); } else clearError(producto);
+
+            const saldoVal = parseInt(saldo.value);
+            if (isNaN(saldoVal) || saldoVal < 0) {
+                errores.push("Ingrese un saldo actual válido (0 o mayor).");
+                showError(saldo, "Ingrese un saldo actual válido (0 o mayor).");
+            } else clearError(saldo);
+
+            // Fecha (opcional) - no obligatoria: no validamos si vacía
+
+            if (errores.length > 0) {
+                e.preventDefault();
+                errorSummary.classList.remove("d-none");
+                errorSummary.innerHTML = `<strong>Se encontraron los siguientes errores:</strong>
+                    <ul class="mb-0 mt-2">${errores.map(x => `<li>${x}</li>`).join("")}</ul>`;
+                window.scrollTo({ top: 0, behavior: "smooth" });
+                return false;
+            } else {
+                errorSummary.classList.add("d-none");
+            }
+        });
+
+        // Mostrar mensaje de éxito si el controlador lo puso en TempData
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <text>
+            Swal.fire({
+                icon: 'success',
+                title: 'Operación exitosa',
+                text: '@TempData["SuccessMessage"]',
+                timer: 1800,
+                showConfirmButton: false
+            });
+            </text>
+        }
+    });
+    </script>
+}

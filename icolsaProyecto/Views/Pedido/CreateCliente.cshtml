@@ -1,0 +1,252 @@
+@model icolsaProyecto.Models.Cliente
+
+@{
+    ViewData["Title"] = "Hacer Pedido";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var productos = ViewBag.Productos as List<icolsaProyecto.Models.Producto> ?? new();
+    var metodosPago = ViewBag.MetodosPago as List<icolsaProyecto.Models.MetodoPago> ?? new();
+}
+
+<div class="container py-5">
+    <div class="text-center mb-5">
+        <h1 class="fw-bold text-primary">Realiza tu Pedido</h1>
+        <p class="text-muted fs-5">Completa tus datos, selecciona los productos y el método de pago.</p>
+    </div>
+
+    <form asp-action="CreateCliente" method="post" id="pedidoForm" novalidate>
+        @Html.AntiForgeryToken()
+
+        <div class="card shadow-lg border-0 rounded-4 p-4">
+
+            <!-- DATOS DEL CLIENTE -->
+            <h4 class="mb-3 text-secondary fw-semibold"> Datos del Cliente</h4>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label asp-for="Nombre_Cliente" class="form-label fw-semibold">Nombre</label>
+                    <input asp-for="Nombre_Cliente" class="form-control rounded-pill" required />
+                    <span asp-validation-for="Nombre_Cliente" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Apellido_Cliente" class="form-label fw-semibold">Apellido</label>
+                    <input asp-for="Apellido_Cliente" class="form-control rounded-pill" required />
+                    <span asp-validation-for="Apellido_Cliente" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Telefono_Cliente" class="form-label fw-semibold">Teléfono</label>
+                    <input asp-for="Telefono_Cliente" class="form-control rounded-pill" maxlength="8" required />
+                    <span asp-validation-for="Telefono_Cliente" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Correo_Cliente" class="form-label fw-semibold">Correo Electrónico</label>
+                    <input asp-for="Correo_Cliente" type="email" class="form-control rounded-pill" required />
+                    <span asp-validation-for="Correo_Cliente" class="text-danger small"></span>
+                </div>
+                <div class="col-12">
+                    <label asp-for="Direccion_Cliente" class="form-label fw-semibold">Dirección</label>
+                    <textarea asp-for="Direccion_Cliente" class="form-control rounded-4" rows="2" required></textarea>
+                    <span asp-validation-for="Direccion_Cliente" class="text-danger small"></span>
+                </div>
+            </div>
+
+            <hr class="my-4" />
+
+            <!-- SELECCION DE PRODUCTOS -->
+            <h4 class="mb-3 text-secondary fw-semibold"> Productos</h4>
+
+            <div id="productosContainer">
+                <div class="row align-items-center g-3 producto-item">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Producto</label>
+                        <select class="form-select productoSelect rounded-pill" name="detalles[0].IDProducto" required>
+                            <option value="">Seleccione un producto...</option>
+                            @foreach (var p in productos)
+                            {
+                                <option value="@p.IDProducto" data-precio="@p.PrecioUnitario_Producto" data-stock="@p.Stock_Producto">
+                                    @p.Nombre_Producto - Q @p.PrecioUnitario_Producto (Stock: @p.Stock_Producto)
+                                </option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">Cantidad</label>
+                        <input type="number" name="detalles[0].Cantidad" class="form-control cantidadInput rounded-pill text-center" min="1" value="1" required />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold">Subtotal</label>
+                        <input type="text" class="form-control subtotalInput rounded-pill text-center bg-light" readonly value="Q 0.00" />
+                        <input type="hidden" name="detalles[0].Subtotal" class="subtotalHidden" value="0" />
+                    </div>
+                    <div class="col-md-1 text-center">
+                        <button type="button" class="btn btn-outline-danger rounded-circle btnEliminarProducto" title="Eliminar producto">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-end mt-3">
+                <button type="button" id="btnAgregarProducto" class="btn btn-outline-primary rounded-pill">
+                    <i class="bi bi-plus-circle"></i> Agregar otro producto
+                </button>
+            </div>
+
+            <div class="text-end mt-4">
+                <h5>Total general: <span id="totalGeneral" class="text-success fw-bold">Q 0.00</span></h5>
+            </div>
+
+            <hr class="my-4" />
+
+
+                
+            <!-- METODO DE PAGO -->
+            <h4 class="mb-3 text-secondary fw-semibold"> Método de Pago</h4>
+            <div class="col-md-6">
+                <select name="IDMetodoPago" class="form-select rounded-pill w-100" required>
+                    <option value="">Seleccione un método...</option>
+                    @foreach (var mp in metodosPago)
+                    {
+                        <option value="@mp.IDMetodoPago">@mp.NombreMetodo</option>
+                    }
+                </select>
+            </div>
+            
+            <!-- ALERTA DE STOCK INSUFICIENTE -->
+            <div id="alertaStock" class="alert alert-warning d-none mt-3" role="alert">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                <strong>Advertencia:</strong> <span id="mensajeStock"></span>
+            </div>
+            
+            <!-- BOTONES -->
+            <div class="text-center mt-5">
+                <button type="submit" id="btnConfirmar" class="btn btn-gradient px-5 py-2 rounded-pill fw-semibold shadow-sm">
+                    <i class="bi bi-check-circle me-2"></i> Confirmar Pedido
+                </button>
+                <a asp-action="Index" asp-controller="Producto" class="btn btn-outline-secondary px-4 py-2 rounded-pill ms-2">
+                    <i class="bi bi-arrow-left me-2"></i> Cancelar
+                </a>
+            </div>
+
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        function actualizarSubtotalesYTotal() {
+            let total = 0;
+            document.querySelectorAll(".producto-item").forEach((item, index) => {
+                const select = item.querySelector(".productoSelect");
+                const inputCantidad = item.querySelector(".cantidadInput");
+                const inputSubtotal = item.querySelector(".subtotalInput");
+                const inputHidden = item.querySelector(".subtotalHidden");
+
+                const precio = parseFloat(select.selectedOptions[0]?.dataset.precio || 0);
+                const cantidad = parseInt(inputCantidad.value) || 0;
+                const subtotal = precio * cantidad;
+
+                inputSubtotal.value = `Q ${subtotal.toFixed(2)}`;
+                inputHidden.value = subtotal.toFixed(2);
+
+                total += subtotal;
+            });
+
+            document.getElementById("totalGeneral").textContent = `Q ${total.toFixed(2)}`;
+        }
+
+        // Agregar un nuevo bloque de producto
+        document.getElementById("btnAgregarProducto").addEventListener("click", function () {
+            const container = document.getElementById("productosContainer");
+            const index = container.children.length;
+
+            const nuevo = container.firstElementChild.cloneNode(true);
+
+            // Actualizar nombres de inputs
+            nuevo.querySelector(".productoSelect").name = `detalles[${index}].IDProducto`;
+            nuevo.querySelector(".cantidadInput").name = `detalles[${index}].Cantidad`;
+            nuevo.querySelector(".subtotalHidden").name = `detalles[${index}].Subtotal`;
+
+            // Reset valores
+            nuevo.querySelector(".productoSelect").selectedIndex = 0;
+            nuevo.querySelector(".cantidadInput").value = 1;
+            nuevo.querySelector(".subtotalInput").value = "Q 0.00";
+            nuevo.querySelector(".subtotalHidden").value = 0;
+
+            container.appendChild(nuevo);
+        });
+
+        // Delegación de eventos para actualizar totales
+        document.addEventListener("change", (e) => {
+            if (e.target.classList.contains("productoSelect") || e.target.classList.contains("cantidadInput")) {
+                actualizarSubtotalesYTotal();
+            }
+        });
+
+        // Eliminar producto
+        document.addEventListener("click", (e) => {
+            if (e.target.closest(".btnEliminarProducto")) {
+                const items = document.querySelectorAll(".producto-item");
+                if (items.length > 1) {
+                    e.target.closest(".producto-item").remove();
+                    actualizarSubtotalesYTotal();
+                } else {
+                    alert("Debe haber al menos un producto en el pedido.");
+                }
+            }
+        });
+
+        // Inicializar totales
+        actualizarSubtotalesYTotal();
+    </script>
+    <script>
+                    // ...existing code...
+                    function validarStock() {
+                        let stockValido = true;
+                        let advertencias = [];
+            
+                        document.querySelectorAll(".producto-item").forEach((item, index) => {
+                            const select = item.querySelector(".productoSelect");
+                            const inputCantidad = item.querySelector(".cantidadInput");
+                            
+                            const productoId = select.value;
+                            const cantidad = parseInt(inputCantidad.value) || 0;
+            
+                            if (!productoId || cantidad <= 0) return;
+            
+                            // Obtener el data-stock del option (necesitas agregarlo en la vista)
+                            const stockDisponible = parseInt(select.selectedOptions[0]?.dataset.stock || 0);
+            
+                            if (cantidad > stockDisponible) {
+                                stockValido = false;
+                                advertencias.push(`${select.selectedOptions[0].text}: Solicitas ${cantidad} pero solo hay ${stockDisponible} disponibles.`);
+                            }
+                        });
+            
+                        const alertaStock = document.getElementById("alertaStock");
+                        const mensajeStock = document.getElementById("mensajeStock");
+            
+                        if (!stockValido) {
+                            alertaStock.classList.remove("d-none");
+                            mensajeStock.innerHTML = advertencias.join("<br>");
+                            document.getElementById("btnConfirmar").disabled = true;
+                            document.getElementById("btnConfirmar").classList.add("opacity-50");
+                        } else {
+                            alertaStock.classList.add("d-none");
+                            document.getElementById("btnConfirmar").disabled = false;
+                            document.getElementById("btnConfirmar").classList.remove("opacity-50");
+                        }
+                    }
+            
+                    // Actualizar selección de productos con STOCK
+                    document.addEventListener("change", (e) => {
+                        if (e.target.classList.contains("productoSelect") || e.target.classList.contains("cantidadInput")) {
+                            actualizarSubtotalesYTotal();
+                            validarStock(); // Validar stock cuando cambia cantidad o producto
+                        }
+                    });
+            
+                    // Inicializar
+                    validarStock();
+                </script>
+}

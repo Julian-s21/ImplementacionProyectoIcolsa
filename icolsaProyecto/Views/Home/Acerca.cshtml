@@ -1,0 +1,89 @@
+@{
+    ViewData["Title"] = "Acerca de Nosotros";
+    var userRol = Context.Session.GetString("UsuarioRol");
+    Layout = userRol == "Administrativo" || userRol == "Secretario" || userRol == "Empleado"
+        ? "~/Views/Shared/_LayoutAdministrativo.cshtml"
+        : "~/Views/Shared/_Layout.cshtml";
+}
+
+<section class="py-5 bg-light">
+    <div class="container">
+        <!-- ENCABEZADO -->
+        <div class="text-center mb-5">
+            <h1 class="fw-bold text-gradient">Sobre Icolsa S.A.</h1>
+            <p class="lead text-muted mt-3">
+                Dedicados a ofrecer productos de alta calidad y soluciones de distribución eficientes en Guatemala.
+            </p>
+        </div>
+
+        <!-- SECCIÓN DE INFORMACIÓN -->
+        <div class="row g-4 align-items-center">
+            
+
+            <div class="col-md-6">
+                <h3 class="fw-semibold mb-3 text-gradient">¿Quiénes somos?</h3>
+                <p class="text-muted mb-4">
+                    Somos una empresa guatemalteca ubicada en <strong>San Pedro Sacatepéquez, San Marcos</strong>,
+                    dedicada a la importación y distribución de productos de marcas reconocidas como 
+                    <strong>Hilos Iris S.A.</strong> y <strong>Globos Payaso</strong> de México.
+                </p>
+                <p class="text-muted">
+                    Nuestro compromiso es brindar una atención personalizada, precios competitivos y entregas rápidas,
+                    fortaleciendo la confianza de nuestros clientes en cada venta.
+                </p>
+            </div>
+        </div>
+
+        <!-- MISIÓN Y VISIÓN -->
+        <div class="row mt-5 g-4">
+            <div class="col-md-6">
+                <div class="p-4 bg-white shadow-sm rounded-4 h-100">
+                    <h4 class="text-gradient fw-bold mb-3"><i class="bi bi-bullseye me-2"></i>Misión</h4>
+                    <p class="text-muted">
+                        Conectar a comunidades locales con productos de calidad internacional en decoración y confección, gracias a importaciones confiables y atención cercana.
+                    </p>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="p-4 bg-white shadow-sm rounded-4 h-100">
+                    <h4 class="text-gradient fw-bold mb-3"><i class="bi bi-eye me-2"></i>Visión</h4>
+                    <p class="text-muted">
+                        Ser la primera opción regional en distribución de globos y hilos importados, reconocida por estabilidad, calidad y compromiso con los pequeños comerciantes.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- VALORES -->
+        <div class="mt-5 text-center">
+            <h3 class="text-gradient fw-bold mb-4">Nuestros Valores</h3>
+            <div class="d-flex flex-wrap justify-content-center gap-3">
+                <div class="p-3 bg-white shadow-sm rounded-4">
+                    <i class="bi bi-hand-thumbs-up fs-3 text-gradient"></i>
+                    <p class="fw-semibold mt-2 mb-0">Compromiso</p>
+                </div>
+                <div class="p-3 bg-white shadow-sm rounded-4">
+                    <i class="bi bi-lightbulb fs-3 text-gradient"></i>
+                    <p class="fw-semibold mt-2 mb-0">Innovación</p>
+                </div>
+                <div class="p-3 bg-white shadow-sm rounded-4">
+                    <i class="bi bi-people fs-3 text-gradient"></i>
+                    <p class="fw-semibold mt-2 mb-0">Trabajo en equipo</p>
+                </div>
+                <div class="p-3 bg-white shadow-sm rounded-4">
+                    <i class="bi bi-shield-check fs-3 text-gradient"></i>
+                    <p class="fw-semibold mt-2 mb-0">Honestidad</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- CTA -->
+        <div class="text-center mt-5">
+            <h4 class="fw-bold text-dark mb-3">¿Deseas más información?</h4>
+            <a href="https://wa.me/50259583741" target="_blank" class="btn btn-gradient px-4 py-2 rounded-pill">
+                <i class="bi bi-whatsapp me-2"></i> Contáctanos por WhatsApp
+            </a>
+        </div>
+    </div>
+</section>

@@ -1,0 +1,225 @@
+/* ===== Base ===== */
+html {
+    font-size: 14px;
+    position: relative;
+    min-height: 100%;
+}
+
+body {
+    margin-bottom: 60px;
+    font-family: 'Poppins', sans-serif;
+    background-color: #f9faff;
+    color: #222;
+}
+
+/* ===== Botones y focus ===== */
+.btn:focus, 
+.btn:active:focus, 
+.btn-link.nav-link:focus, 
+.form-control:focus, 
+.form-check-input:focus {
+    box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+}
+
+.focus-ring:focus {
+    box-shadow: 0 0 0 0.2rem rgba(102, 51, 255, 0.25);
+}
+
+/* ===== Sidebar ===== */
+.bg-light {
+    background-color: #ffffff !important;
+    border-right: 1px solid #e0e0e0;
+}
+
+.nav-pills .nav-link {
+    border-radius: 8px;
+    padding: 10px 15px;
+    transition: all 0.2s ease;
+}
+
+.nav-pills .nav-link:hover {
+    background: linear-gradient(90deg, #6a11cb, #2575fc);
+    color: #fff !important;
+    transform: translateX(3px);
+}
+
+/* ===== Tablas ===== */
+.table th {
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+.table-hover tbody tr {
+    transition: background-color 0.3s ease, transform 0.12s ease;
+}
+
+.table-hover tbody tr:hover {
+    background-color: #f6f8ff;
+    transform: translateY(-1px);
+}
+
+/* ===== Inputs ===== */
+input.is-invalid, select.is-invalid {
+    border: 1px solid #e74c3c !important;
+    box-shadow: 0 0 0 0.15rem rgba(231, 76, 60, 0.25);
+}
+
+input.is-valid, select.is-valid {
+    border: 1px solid #2ecc71 !important;
+    box-shadow: 0 0 0 0.15rem rgba(46, 204, 113, 0.25);
+}
+
+.invalid-feedback {
+    color: #e74c3c;
+}
+
+.valid-feedback {
+    color: #2ecc71;
+}
+
+/* ===== Gradientes y colores ===== */
+.bg-gradient {
+    background: linear-gradient(135deg, #4B6CB7, #182848);
+    color: #fff;
+}
+
+.header-gradient {
+    background: linear-gradient(90deg, #6a11cb, #2575fc);
+    color: #fff;
+    border-radius: 8px;
+    padding: 12px 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.text-gradient {
+    background: linear-gradient(90deg, #6a11cb, #2575fc);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* ===== Botones con animación ===== */
+.btn-gradient {
+    background: linear-gradient(90deg, #6a11cb, #2575fc);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn-gradient:hover {
+    filter: brightness(1.15);
+    transform: translateY(-2px);
+}
+
+.btn-anim:hover {
+    transform: scale(1.05);
+    transition: transform 0.2s ease;
+}
+
+/* Efecto ripple */
+.ripple-effect {
+    position: absolute;
+    border-radius: 50%;
+    transform: scale(0);
+    animation: ripple-animation 0.6s linear;
+    background-color: rgba(255, 255, 255, 0.6);
+}
+
+@keyframes ripple-animation {
+    to {
+        transform: scale(4);
+        opacity: 0;
+    }
+}
+
+/* ===== Modales ===== */
+.modal-content {
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.12);
+    border: none;
+}
+
+.modal-header {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.modal-footer {
+    border-top: none;
+}
+
+/* ===== Tooltips y tour ===== */
+.customTooltip {
+    font-size: 14px;
+    color: #222;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.12);
+    padding: 14px;
+    max-width: 320px;
+}
+
+.customHighlight {
+    box-shadow: 0 0 0 6px rgba(99, 102, 241, 0.18) !important;
+    border-radius: 8px !important;
+}
+
+/* Botón tour flotante */
+#btnTour {
+    min-width: 120px;
+    border-radius: 8px;
+}
+
+/* ===== Responsivo ===== */
+@media (max-width: 768px) {
+    h3 {
+        font-size: 1.25rem;
+    }
+
+    .btn {
+        font-size: 0.875rem;
+    }
+
+    .header-gradient h3 {
+        font-size: 1.05rem;
+    }
+
+    #btnTour {
+        min-width: auto;
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+}
+
+/* ===== Detalles extra ===== */
+.btn-group .btn {
+    margin: 0 2px;
+}
+
+/* Contenedor de las columnas de imágenes */
+    .hero-slices {
+        height: 380px;
+        overflow: hidden;
+    }
+
+    /* Cada imagen con efecto de movimiento */
+    .hero-slices .slice img {
+        transition: transform 8s ease-in-out;
+        animation: floaty 10s ease-in-out infinite alternate;
+    }
+
+    /* Animación tipo flotante */
+    @keyframes floaty {
+        0% { transform: translateY(0px) scale(1); }
+        50% { transform: translateY(-25px) scale(1.05); }
+        100% { transform: translateY(0px) scale(1); }
+    }
+
+    /* Opcional: diferente retardo por imagen para hacerlo más natural */
+    .hero-slices .slice:nth-child(1) img { animation-delay: 0s; }
+    .hero-slices .slice:nth-child(2) img { animation-delay: 2s; }
+    .hero-slices .slice:nth-child(3) img { animation-delay: 4s; }

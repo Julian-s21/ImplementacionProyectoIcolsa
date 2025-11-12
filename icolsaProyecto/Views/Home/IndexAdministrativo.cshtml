@@ -1,0 +1,76 @@
+@{
+    ViewData["Title"] = "Bienvenida Administrativa";
+    var userRol = Context.Session.GetString("UsuarioRol");
+    Layout = userRol == "Administrativo" || userRol == "Secretario" || userRol == "Empleado"
+        ? "~/Views/Shared/_LayoutAdministrativo.cshtml"
+        : "~/Views/Shared/_Layout.cshtml";
+}
+
+<!-- ================= HERO ADMIN MODERNO ================= -->
+<section class="hero-admin-modern py-5">
+    <div class="container">
+        <div class="row align-items-center g-4">
+            <!-- Mensaje de bienvenida -->
+            <div class="col-lg-8 mx-auto text-center">
+                <div class="card shadow-sm rounded-4 p-5">
+                    <h1 class="display-5 fw-bold text-primary mb-3">
+                        ¡Bienvenido(a), @Context.Session.GetString("UsuarioNombre")!
+                    </h1>
+                    <p class="lead text-muted mb-4">
+                        Este es tu panel administrativo. Desde aquí puedes supervisar operaciones, gestionar usuarios y pedidos, y acceder a reportes de manera rápida y segura.
+                    </p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- ================= ESTILOS MODERNOS ================= -->
+<style>
+    .hero-admin-modern {
+        background: linear-gradient(180deg, #f0f4f8 0%, #ffffff 100%);
+    }
+
+    .hero-admin-modern .card {
+        background: white;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .hero-admin-modern .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #6f42c1, #9b59b6);
+        border: none;
+        color: white;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary:hover {
+        background: linear-gradient(135deg, #9b59b6, #6f42c1);
+        transform: translateY(-2px);
+    }
+
+    .btn-outline-primary {
+        border-color: #6f42c1;
+        color: #6f42c1;
+    }
+
+    .btn-outline-primary:hover {
+        background: #6f42c1;
+        color: white;
+    }
+
+    .btn-outline-secondary {
+        border-color: #6c757d;
+        color: #6c757d;
+    }
+
+    .btn-outline-secondary:hover {
+        background: #6c757d;
+        color: white;
+    }
+</style>

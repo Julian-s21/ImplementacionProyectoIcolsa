@@ -1,0 +1,331 @@
+@model List<icolsaProyecto.Models.Pedido>
+
+@{
+    ViewData["Title"] = "Gestión de Pedidos";
+
+    var userRol = Context.Session.GetString("UsuarioRol");
+    Layout = userRol == "Administrativo" || userRol == "Secretario" || userRol == "Empleado"
+        ? "~/Views/Shared/_LayoutAdministrativo.cshtml"
+        : "~/Views/Shared/_Layout.cshtml";
+
+    int totalPedidos = Model?.Count ?? 0;
+}
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@500;600&display=swap" rel="stylesheet" />
+<link href="https://unpkg.com/intro.js/minified/introjs.min.css" rel="stylesheet" />
+
+<div class="container py-5" style="font-family: 'Inter', sans-serif;">
+
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb bg-white p-3 rounded shadow-sm">
+            <li class="breadcrumb-item">
+                <a asp-controller="Home" asp-action="Index" class="text-decoration-none text-primary fw-semibold">
+                    <i class="bi bi-house-door me-1"></i> Inicio
+                </a>
+            </li>
+            <li class="breadcrumb-item active fw-semibold text-dark" aria-current="page">Gestión de Pedidos</li>
+        </ol>
+    </nav>
+
+    <!-- Encabezado -->
+    <div class="alert alert-light border-start border-4 border-primary shadow-sm rounded-4 mb-4 d-flex justify-content-between align-items-center flex-wrap">
+        <div class="d-flex align-items-center">
+            <i class="bi bi-basket text-primary fs-3 me-3"></i>
+            <div>
+                <h5 class="mb-0 fw-semibold" style="font-family:'Poppins', sans-serif;">Listado de Pedidos</h5>
+                <small class="text-muted">Administra todos los pedidos registrados en el sistema.</small>
+            </div>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+            <button id="btnTour" class="btn btn-outline-primary btn-sm" data-bs-toggle="tooltip" title="Ver guía interactiva">
+                <i class="bi bi-info-circle me-1"></i> Guía
+            </button>
+            <a asp-controller="Pedido" asp-action="Create" class="btn btn-light btn-sm shadow-sm" title="Registrar nuevo pedido">
+                <i class="bi bi-plus-circle me-1"></i> Nuevo Pedido
+            </a>
+        </div>
+    </div>
+
+    <!-- Panel principal -->
+    <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+        <div class="card-header text-white py-4 px-4 d-flex justify-content-between align-items-center flex-wrap"
+             style="background: linear-gradient(90deg, #6a11cb, #2575fc);">
+            <h3 class="mb-0 fw-semibold d-flex align-items-center">
+                <i class="bi bi-card-checklist me-2 fs-4"></i> Pedidos Registrados
+            </h3>
+        </div>
+
+        <div class="card-body p-4 bg-light">
+            <!-- ✅ BUSQUEDA Y FILTROS -->
+            <div class="row mb-4">
+
+    <div class="col-md-3">
+        <label class="fw-semibold">Buscar pedido</label>
+        <input id="searchInput" type="text" class="form-control shadow-sm"
+               placeholder="Buscar por cliente, usuario o texto..." />
+    </div>
+
+    <div class="col-md-3">
+        <label class="fw-semibold">Fecha desde</label>
+        <input id="fechaDesde" type="date" class="form-control shadow-sm" />
+    </div>
+
+    <div class="col-md-3">
+        <label class="fw-semibold">Fecha hasta</label>
+        <input id="fechaHasta" type="date" class="form-control shadow-sm" />
+    </div>
+
+    <div class="col-md-3">
+        <label class="fw-semibold">Filtrar por usuario</label>
+        <select id="filtroUsuario" class="form-select shadow-sm">
+            <option value="">Todos</option>
+            @foreach (var u in Model.Select(m => m.Usuario?.Nombre_Usuario).Distinct())
+            {
+                if (!string.IsNullOrWhiteSpace(u))
+                {
+                    <option value="@u">@u</option>
+                }
+            }
+        </select>
+    </div>
+
+</div>
+
+            <!-- 📊 Estadísticas -->
+            <div class="row justify-content-center mb-4">
+                <div class="col-md-6">
+                    <div class="bg-white p-3 rounded shadow-sm border-start border-4 border-primary text-center">
+                        <i class="bi bi-list-check me-1"></i>
+                        <span class="fw-semibold text-muted me-2">Total pedidos:</span>
+                        <span class="fw-bold">@totalPedidos</span>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- 🧾 Tabla -->
+            @if (Model != null && Model.Any())
+            {
+                <div class="table-responsive" id="tablaPedidos">
+                    <table class="table table-hover align-middle bg-white rounded-4 shadow-sm text-center">
+                        <thead class="text-white" style="background: linear-gradient(90deg, #6a11cb, #2575fc);">
+                            <tr>
+                                <th>ID</th>
+                                <th>Fecha Pedido</th>
+                                <th>Cliente</th>
+                                <th>Productos</th>
+                                <th>Total de Productos</th>
+                                <th>Total Pago</th>
+                                <th>Usuario</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var p in Model)
+                            {
+                                <tr>
+                                    <td>@p.IDPedido</td>
+                                    <td>@p.Fecha_Pedido?.ToString("dd/MM/yyyy")</td>
+                                    <td>@p.Cliente?.Nombre_Cliente</td>
+
+                                    <!-- 🧩 Mostrar lista de productos -->
+                                    <td class="text-start">
+                                        @if (p.Detalles != null && p.Detalles.Any())
+                                        {
+                                            <ul class="list-unstyled mb-0">
+                                                @foreach (var det in p.Detalles)
+                                                {
+                                                    <li>
+                                                        <span class="fw-semibold">@det.Producto?.Nombre_Producto</span>
+                                                        <small class="text-muted">
+                                                            (@det.Cantidad, @det.Subtotal?.ToString("C"))
+                                                        </small>
+                                                    </li>
+                                                }
+                                            </ul>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted fst-italic">Sin productos</span>
+                                        }
+                                    </td>
+
+                                    <td class="fw-semibold">@p.Cantidad_Pedido</td>
+                                    <td class="fw-semibold text-primary">@p.TotalPago_Pedido?.ToString("C")</td>
+                                    <td>@p.Usuario?.Nombre_Usuario</td>
+
+                                    <td>
+                                        <div class="d-flex justify-content-center gap-2">
+                                            <a asp-controller="Pedido" asp-action="Edit" asp-route-id="@p.IDPedido"
+                                               class="btn btn-outline-success btn-sm rounded-circle shadow-sm"
+                                               data-bs-toggle="tooltip" title="Editar pedido">
+                                                <i class="bi bi-pencil-square"></i>
+                                            </a>
+                                            @if (userRol == "Administrativo")
+                                            {
+                                            <form asp-controller="Pedido" asp-action="DeleteConfirmed" method="post" id="formEliminar-@p.IDPedido">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@p.IDPedido" />
+                                                <button type="button" onclick="confirmarEliminacion('formEliminar-@p.IDPedido')"
+                                                        class="btn btn-outline-danger btn-sm rounded-circle shadow-sm"
+                                                        data-bs-toggle="tooltip" title="Eliminar pedido">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </form>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-5">
+                    <i class="bi bi-info-circle text-primary fs-3"></i>
+                    <p class="mt-2 mb-0 text-muted fw-semibold">No hay pedidos registrados.</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+@section Scripts {
+    <script src="https://unpkg.com/intro.js/minified/intro.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        // ✅ Inicializar tooltips
+        document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
+
+        // ✅ BÚSQUEDA + FILTRO POR FECHA (nuevo)
+        (() => {
+            const search = document.getElementById('searchInput');
+            const fechaDesde = document.getElementById('fechaDesde');
+            const fechaHasta = document.getElementById('fechaHasta');
+            const filas = document.querySelectorAll('#tablaPedidos tbody tr');
+            let timer;
+
+            function aplicarFiltros() {
+                const term = search?.value.toLowerCase() ?? "";
+                const fDesde = fechaDesde?.value ? new Date(fechaDesde.value) : null;
+                const fHasta = fechaHasta?.value ? new Date(fechaHasta.value) : null;
+
+                filas.forEach(row => {
+                    const texto = row.textContent.toLowerCase();
+
+                    // ✅ Obtener fecha en formato dd/MM/yyyy
+                    const fechaTexto = row.children[1]?.innerText.trim();
+                    let coincideFecha = true;
+
+                    if (fechaTexto) {
+                        const [dia, mes, anio] = fechaTexto.split("/");
+                        const fechaPedido = new Date(`${anio}-${mes}-${dia}`);
+
+                        if (fDesde && fechaPedido < fDesde) coincideFecha = false;
+                        if (fHasta && fechaPedido > fHasta) coincideFecha = false;
+                    }
+
+                    const coincideBusqueda = texto.includes(term);
+
+                    row.style.display = (coincideFecha && coincideBusqueda) ? '' : 'none';
+                });
+            }
+
+            [search, fechaDesde, fechaHasta].forEach(el => {
+                el?.addEventListener('input', () => {
+                    clearTimeout(timer);
+                    timer = setTimeout(aplicarFiltros, 250);
+                });
+            });
+        })();
+
+
+        // 🗑 Confirmar eliminación
+        function confirmarEliminacion(formId) {
+            Swal.fire({
+                title: "¿Eliminar pedido?",
+                text: "Esta acción no se puede deshacer.",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#2575fc",
+                cancelButtonColor: "#d33",
+                confirmButtonText: "Sí, eliminar",
+                cancelButtonText: "Cancelar"
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById(formId).submit();
+                }
+            });
+        }
+
+        // ✅ Mensaje de éxito
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <text>
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Operación exitosa',
+                    text: '@TempData["SuccessMessage"]',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            </text>
+        }
+
+        // 🧭 TOUR INTERACTIVO - ACTUALIZADO PARA FILTROS POR FECHA
+        (() => {
+
+            const btnTour = document.getElementById('btnTour');
+            const tabla = document.getElementById('tablaPedidos');
+
+            const search = document.getElementById('searchInput');
+            const fechaDesde = document.getElementById('fechaDesde');
+            const fechaHasta = document.getElementById('fechaHasta');
+
+            const pasos = [];
+
+            // Botón para iniciar
+            if (btnTour)
+                pasos.push({
+                    element: '#btnTour',
+                    intro: 'Haz clic aquí para iniciar esta guía interactiva.',
+                    position: 'bottom'
+                });
+
+            // Filtros
+            if (search || fechaDesde || fechaHasta)
+                pasos.push({
+                    element: '#searchInput',
+                    intro: 'Aquí puedes buscar y filtrar los pedidos por fecha.',
+                    position: 'right'
+                });
+
+            // Tabla de pedidos
+            if (tabla)
+                pasos.push({
+                    element: '#tablaPedidos',
+                    intro: 'Aquí puedes ver, editar y eliminar los pedidos registrados.',
+                    position: 'top'
+                });
+
+            if (pasos.length === 0) return;
+
+            function iniciarTour() {
+                introJs().setOptions({
+                    steps: pasos,
+                    showProgress: true,
+                    nextLabel: 'Siguiente',
+                    prevLabel: 'Atrás',
+                    doneLabel: 'Finalizar'
+                }).start();
+            }
+
+            btnTour?.addEventListener('click', iniciarTour);
+
+        })();
+    </script>
+}
