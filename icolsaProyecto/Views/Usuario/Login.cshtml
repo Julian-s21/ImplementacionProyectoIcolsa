@@ -128,68 +128,27 @@
 
     }
 </style>
-
-<!-- =================================== -->
-<!-- SCRIPTS -->
-<!-- =================================== -->
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script>
-        // Mostrar/Ocultar contraseña
-        document.getElementById("togglePass").addEventListener("click", function () {
+    <script src="~/js/loginValidations.js"></script> 
+     <script>
+        // Mostrar/Ocultar contraseña en login
+        document.addEventListener("DOMContentLoaded", () => {
+            const togglePass = document.getElementById("togglePass");
             const input = document.getElementById("Contrasena_Usuario");
-            const icon = this.querySelector("i");
 
-            if (input.type === "password") {
-                input.type = "text";
-                icon.classList.replace("bi-eye", "bi-eye-slash");
-            } else {
-                input.type = "password";
-                icon.classList.replace("bi-eye-slash", "bi-eye");
-            }
-        });
-
-        // Indicador de fuerza de contraseña (visual)
-        const passInput = document.getElementById("Contrasena_Usuario");
-        const strengthBar = document.getElementById("passStrength");
-        const strengthText = document.getElementById("strengthText");
-
-        passInput.addEventListener("input", () => {
-            const value = passInput.value;
-            let strength = 0;
-
-            if (value.length > 5) strength++;
-            if (/[A-Z]/.test(value)) strength++;
-            if (/[0-9]/.test(value)) strength++;
-            if (/[^A-Za-z0-9]/.test(value)) strength++;
-
-            switch (strength) {
-                case 0:
-                    strengthBar.style.width = "0%";
-                    strengthBar.className = "progress-bar bg-danger";
-                    strengthText.textContent = "";
-                    break;
-                case 1:
-                    strengthBar.style.width = "25%";
-                    strengthBar.className = "progress-bar bg-danger";
-                    strengthText.textContent = "Débil";
-                    break;
-                case 2:
-                    strengthBar.style.width = "50%";
-                    strengthBar.className = "progress-bar bg-warning";
-                    strengthText.textContent = "Media";
-                    break;
-                case 3:
-                    strengthBar.style.width = "75%";
-                    strengthBar.className = "progress-bar bg-info";
-                    strengthText.textContent = "Buena";
-                    break;
-                case 4:
-                    strengthBar.style.width = "100%";
-                    strengthBar.className = "progress-bar bg-success";
-                    strengthText.textContent = "Fuerte";
-                    break;
+            if (togglePass && input) {
+                togglePass.addEventListener("click", function () {
+                    const icon = this.querySelector("i");
+                    if (input.type === "password") {
+                        input.type = "text";
+                        icon.classList.replace("bi-eye", "bi-eye-slash");
+                    } else {
+                        input.type = "password";
+                        icon.classList.replace("bi-eye-slash", "bi-eye");
+                    }
+                });
             }
         });
     </script>

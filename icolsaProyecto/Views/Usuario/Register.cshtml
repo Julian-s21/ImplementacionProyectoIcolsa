@@ -31,56 +31,57 @@
                     @Html.AntiForgeryToken()
 
                     <!-- Nombre -->
-                    <div class="form-group mb-3">
-                        <label asp-for="Nombre_Usuario" class="form-label fw-semibold">Nombre</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-light"><i class="bi bi-person text-muted"></i></span>
-                            <input asp-for="Nombre_Usuario" class="form-control" placeholder="Tu nombre" />
-                        </div>
-                        <span asp-validation-for="Nombre_Usuario" class="text-danger small d-block mt-1"></span>
-                    </div>
+<div class="form-group mb-3">
+    <label asp-for="Nombre_Usuario" class="form-label fw-semibold">Nombre</label>
+    <div class="input-group">
+        <span class="input-group-text bg-light"><i class="bi bi-person text-muted"></i></span>
+        <input asp-for="Nombre_Usuario" id="Nombre_Usuario" class="form-control" placeholder="Tu nombre" />
+    </div>
+    <span id="NombreError" class="text-danger small d-block mt-1"></span>
+</div>
 
-                    <!-- Correo -->
-                    <div class="form-group mb-3">
-                        <label asp-for="Correo_Usuario" class="form-label fw-semibold">Correo electrónico</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-light"><i class="bi bi-envelope text-muted"></i></span>
-                            <input asp-for="Correo_Usuario" class="form-control" placeholder="nombre@ejemplo.com" />
-                        </div>
-                        <span asp-validation-for="Correo_Usuario" class="text-danger small d-block mt-1"></span>
-                    </div>
+<!-- Correo -->
+<div class="form-group mb-3">
+    <label asp-for="Correo_Usuario" class="form-label fw-semibold">Correo electrónico</label>
+    <div class="input-group">
+        <span class="input-group-text bg-light"><i class="bi bi-envelope text-muted"></i></span>
+        <input asp-for="Correo_Usuario" id="Correo_Usuario" class="form-control" placeholder="nombre@ejemplo.com" />
+    </div>
+    <span id="CorreoError" class="text-danger small d-block mt-1"></span>
+</div>
 
-                    <!-- Contraseña -->
-                    <div class="form-group mb-3">
-                        <label asp-for="Contrasena_Usuario" class="form-label fw-semibold">Contraseña</label>
-                        <div class="input-group position-relative">
-                            <span class="input-group-text bg-light"><i class="bi bi-lock text-muted"></i></span>
-                            <input asp-for="Contrasena_Usuario" id="Contrasena_Usuario" type="password" class="form-control" placeholder="Crea una contraseña" />
-                            <button type="button" class="btn btn-outline-secondary" id="togglePass" title="Mostrar/Ocultar contraseña">
-                                <i class="bi bi-eye"></i>
-                            </button>
-                        </div>
-                        <span asp-validation-for="Contrasena_Usuario" class="text-danger small d-block mt-1"></span>
+<!-- Contraseña -->
+<div class="form-group mb-3">
+    <label asp-for="Contrasena_Usuario" class="form-label fw-semibold">Contraseña</label>
+    <div class="input-group position-relative">
+        <span class="input-group-text bg-light"><i class="bi bi-lock text-muted"></i></span>
+        <input asp-for="Contrasena_Usuario" id="Contrasena_Usuario" type="password" class="form-control" placeholder="Crea una contraseña" />
+        <button type="button" class="btn btn-outline-secondary" id="togglePass" title="Mostrar/Ocultar contraseña">
+            <i class="bi bi-eye"></i>
+        </button>
+    </div>
+    <span id="PassError" class="text-danger small d-block mt-1"></span>
 
-                        <!-- Confirmar Contraseña -->
-                        <div class="form-group mt-3">
-                            <label for="Confirmar_Contrasena" class="form-label fw-semibold">Confirmar Contraseña</label>
-                            <div class="input-group position-relative">
-                                <span class="input-group-text bg-light"><i class="bi bi-lock text-muted"></i></span>
-                                <input type="password" id="Confirmar_Contrasena" class="form-control" placeholder="Repite tu contraseña" />
-                                <button type="button" class="btn btn-outline-secondary" id="toggleConfirmPass" title="Mostrar/Ocultar contraseña">
-                                    <i class="bi bi-eye"></i>
-                                </button>
-                            </div>
-                            <span id="ConfirmPassError" class="text-danger small d-block mt-1"></span>
-                        </div>
+    <!-- Confirmar Contraseña -->
+    <div class="form-group mt-3">
+        <label for="Confirmar_Contrasena" class="form-label fw-semibold">Confirmar Contraseña</label>
+        <div class="input-group position-relative">
+            <span class="input-group-text bg-light"><i class="bi bi-lock text-muted"></i></span>
+            <input type="password" id="Confirmar_Contrasena" class="form-control" placeholder="Repite tu contraseña" />
+            <button type="button" class="btn btn-outline-secondary" id="toggleConfirmPass" title="Mostrar/Ocultar contraseña">
+                <i class="bi bi-eye"></i>
+            </button>
+        </div>
+        <span id="ConfirmPassError" class="text-danger small d-block mt-1"></span>
+    </div>
 
-                        <!-- Barra de fuerza -->
-                        <div class="progress mt-3" style="height: 5px;">
-                            <div id="passStrength" class="progress-bar bg-danger" style="width: 0%;"></div>
-                        </div>
-                        <small id="strengthText" class="form-text text-muted"></small>
-                    </div>
+    <!-- Barra de fuerza -->
+    <div class="progress mt-3" style="height: 5px;">
+        <div id="passStrength" class="progress-bar bg-danger" style="width: 0%;"></div>
+    </div>
+    <small id="strengthText" class="form-text text-muted"></small>
+</div>
+
 
                     <!-- Rol (oculto por defecto) -->
                     <input type="hidden" asp-for="Rol_Usuario" value="Usuario" />
@@ -145,24 +146,24 @@
 
 </style>
 
-<!-- ============================= -->
-<!-- SCRIPTS -->
-<!-- ============================= -->
 @section Scripts {
-    <partial name="_ValidationScriptsPartial" />
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="~/js/validacionRegister.js"></script>
 
     <script>
         // Mostrar/Ocultar contraseña principal
         document.getElementById("togglePass").addEventListener("click", function () {
             const input = document.getElementById("Contrasena_Usuario");
             const icon = this.querySelector("i");
+
             if (input.type === "password") {
                 input.type = "text";
-                icon.classList.replace("bi-eye", "bi-eye-slash");
+                icon.classList.remove("bi-eye");
+                icon.classList.add("bi-eye-slash");
             } else {
                 input.type = "password";
-                icon.classList.replace("bi-eye-slash", "bi-eye");
+                icon.classList.remove("bi-eye-slash");
+                icon.classList.add("bi-eye");
             }
         });
 
@@ -170,69 +171,32 @@
         document.getElementById("toggleConfirmPass").addEventListener("click", function () {
             const input = document.getElementById("Confirmar_Contrasena");
             const icon = this.querySelector("i");
+
             if (input.type === "password") {
                 input.type = "text";
-                icon.classList.replace("bi-eye", "bi-eye-slash");
+                icon.classList.remove("bi-eye");
+                icon.classList.add("bi-eye-slash");
             } else {
                 input.type = "password";
-                icon.classList.replace("bi-eye-slash", "bi-eye");
+                icon.classList.remove("bi-eye-slash");
+                icon.classList.add("bi-eye");
             }
         });
 
-        // Verificar coincidencia de contraseñas antes de enviar
-        document.getElementById("registerForm").addEventListener("submit", function (e) {
+        // Validación simple antes de enviar formulario
+        document.getElementById("registerForm").addEventListener("submit", function(e) {
             const pass = document.getElementById("Contrasena_Usuario").value;
             const confirm = document.getElementById("Confirmar_Contrasena").value;
             const errorSpan = document.getElementById("ConfirmPassError");
 
-            if (pass !== confirm) {
+            if(pass !== confirm) {
                 e.preventDefault();
-                errorSpan.textContent = "Las contraseñas no coinciden.";
+                errorSpan.textContent = "Las contraseñas no coinciden";
             } else {
                 errorSpan.textContent = "";
             }
         });
-
-        // Indicador de fuerza de contraseña
-        const passInput = document.getElementById("Contrasena_Usuario");
-        const strengthBar = document.getElementById("passStrength");
-        const strengthText = document.getElementById("strengthText");
-
-        passInput.addEventListener("input", () => {
-            const value = passInput.value;
-            let strength = 0;
-
-            if (value.length > 5) strength++;
-            if (/[A-Z]/.test(value)) strength++;
-            if (/[0-9]/.test(value)) strength++;
-            if (/[^A-Za-z0-9]/.test(value)) strength++;
-
-            switch (strength) {
-                case 0:
-                    strengthBar.style.width = "0%";
-                    strengthText.textContent = "";
-                    break;
-                case 1:
-                    strengthBar.style.width = "25%";
-                    strengthBar.className = "progress-bar bg-danger";
-                    strengthText.textContent = "Débil";
-                    break;
-                case 2:
-                    strengthBar.style.width = "50%";
-                    strengthBar.className = "progress-bar bg-warning";
-                    strengthText.textContent = "Media";
-                    break;
-                case 3:
-                    strengthBar.style.width = "75%";
-                    strengthBar.className = "progress-bar bg-info";
-                    strengthText.textContent = "Buena";
-                    break;
-                case 4:
-                    strengthBar.style.width = "100%";
-                    strengthBar.className = "progress-bar bg-success";
-                    strengthText.textContent = "Fuerte";
-                    break;
-            }
-        });
     </script>
+}
+
 }

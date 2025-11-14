@@ -191,3 +191,4 @@ C:\Users\JULIAN\Desktop\ProyectoGraduacion\icolsaProyecto\obj\Debug\net8.0\rjsmc
 C:\Users\JULIAN\Desktop\ProyectoGraduacion\icolsaProyecto\obj\Debug\net8.0\staticwebassets.build.json.cache
 C:\Users\JULIAN\Desktop\ProyectoGraduacion\icolsaProyecto\obj\Debug\net8.0\staticwebassets.build.endpoints.json
 C:\Users\JULIAN\Desktop\ProyectoGraduacion\icolsaProyecto\obj\Debug\net8.0\swae.build.ex.cache
+C:\Users\JULIAN\Desktop\ProyectoGraduacion\icolsaProyecto\obj\Debug\net8.0\icolsaProyecto.sourcelink.json

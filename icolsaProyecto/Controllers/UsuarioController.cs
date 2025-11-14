@@ -228,9 +228,8 @@ public async Task<IActionResult> ForgotPassword(string correo, string nueva, str
     _context.Update(usuario);
     await _context.SaveChangesAsync();
 
-    ViewBag.Success = "Contraseña actualizada correctamente. Ahora puedes iniciar sesión.";
-
-    return View("ForgotPassword");
+    TempData["SuccessMessage"] = "contraseña actualizada";
+            return RedirectToAction(nameof(Login));
 }
 
 
